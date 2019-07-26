@@ -66,7 +66,7 @@
     __typeof(_pushFilter) pushFilter = _pushFilter;
     if (pushFilter) {
         query.filterBlock = ^BOOL(CBLQueryRow* row) {
-            return pushFilter(row.document.currentRevision, _pushFilterParams);
+            return pushFilter(row.document.currentRevision, self->_pushFilterParams);
         };
     }
     NSError* error;
@@ -100,10 +100,10 @@
     [self onDatabaseQueue: ^{
         // Query the database for the next batch of changes:
         CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();
-        CBLQueryEnumerator* e = [self pendingDocumentsSince: since limit: _changesBatchSize];
+        CBLQueryEnumerator* e = [self pendingDocumentsSince: since limit: self->_changesBatchSize];
         if (!e) {
             [self onSyncQueue: ^{
-                --_changeListsInFlight;
+                --self->_changeListsInFlight;
                 [self updateState];
             }];
             return;
@@ -119,27 +119,27 @@
         LogTo(Sync, @"Sending %lu changes since sequence #%lld (took %.4f sec)",
               (unsigned long)changes.count, since, time);
 
-        if (changes.count == 0 && _pushContinuousChanges) {
+        if (changes.count == 0 && self->_pushContinuousChanges) {
             // Now go into continuous-push mode, waiting for db changes:
             LogTo(Sync, @"Now observing database change notifications");
             [[NSNotificationCenter defaultCenter] addObserver: self
                                                      selector: @selector(_dbChanged:)
                                                          name: kCBLDatabaseChangeNotification
-                                                       object: _db];
+                                                       object: self->_db];
         }
 
         [self onSyncQueue: ^{
-            BOOL delayNext = (_changeListsInFlight >= kMaxChangeMessagesInFlight);
+            BOOL delayNext = (self->_changeListsInFlight >= kMaxChangeMessagesInFlight);
             [self sendChanges: changes
                        onSent: ^{
                            if (changes.count > 0 && !delayNext)
                                [self sendChangesSince: lastSequence];
                        }
                    onComplete: ^{
-                       --_changeListsInFlight;
+                --self->_changeListsInFlight;
                        if (changes.count > 0 && delayNext)
                            [self sendChangesSince: lastSequence];
-                       else if (_changeListsInFlight == 0)
+                       else if (self->_changeListsInFlight == 0)
                            [self updateState];
                    }
              ];
@@ -149,8 +149,8 @@
 
 
 - (void) sendChanges: (NSArray*)changes
-              onSent: (void(^)())onSent
-          onComplete: (void(^)())onComplete
+              onSent: (void(^)(void))onSent
+          onComplete: (void(^)(void))onComplete
 {
     BLIPRequest* request = [_connection request];
     request.profile = @"changes";
@@ -172,14 +172,14 @@
             NSArray* responseArray = $castIf(NSArray, response.bodyJSON);
             if (responseArray.count > 0) {
                 [self onDatabaseQueue: ^{
-                    if (_pushing) {
+                    if (self->_pushing) {
                         // Update the totalUnitCount before we start sending docs
                         NSUInteger numToSend = 0;
                         for (NSArray* ancestors in responseArray) {
                             if ([ancestors isKindOfClass: [NSArray class]])
                                 ++numToSend;
                         }
-                        _pushProgress.totalUnitCount += numToSend;
+                        self->_pushProgress.totalUnitCount += numToSend;
                     }
                     NSUInteger index = 0;
                     for (NSArray* ancestors in responseArray) {
@@ -191,7 +191,7 @@
                                      sequence: change[0]
                                knownAncestors: ancestors
                                    maxHistory: maxHistory
-                                           to: _connection];
+                                           to: self->_connection];
                             }
                         }
                         ++index;
@@ -231,7 +231,7 @@
     }
     if (changes.count > 0) {
         [self onSyncQueue: ^{
-            if (_connection) {
+            if (self->_connection) {
                 LogTo(Sync, @"Notified that %lu documents changed", (unsigned long)changes.count);
                 [self sendChanges: changes onSent: nil onComplete: nil];
             }
@@ -283,13 +283,13 @@ static NSArray* encodeChange(uint64_t sequence, NSString* docID, NSString* revID
         update.body = revJSON;
         update.compressed = (revJSON.length >= kMinLengthToCompress);
 
-        if (_pushing) {
+        if (self->_pushing) {
             [update send].onComplete = ^(BLIPResponse* response) {
                 if ([self gotError: response])
                     return;
                 LogVerbose(Sync, @"    ...sent revision {%@, %@}", docID, revID);
                 [self noteLocalSequenceIDPushed: sequenceID];
-                _pushProgress.completedUnitCount++;
+                self->_pushProgress.completedUnitCount++;
             };
         } else {
             update.noReply = YES;
@@ -306,17 +306,17 @@ static NSArray* encodeChange(uint64_t sequence, NSString* docID, NSString* revID
     NSString* digest = request[@"digest"];
     [request deferResponse];
     [self onDatabaseQueue: ^{
-        uint64_t length = [_db lengthOfAttachmentWithDigest: digest];
-        NSInputStream* stream = [_db contentStreamOfAttachmentWithDigest: digest];
+        uint64_t length = [self->_db lengthOfAttachmentWithDigest: digest];
+        NSInputStream* stream = [self->_db contentStreamOfAttachmentWithDigest: digest];
         LogVerbose(Sync, @"    Sending attachment %@ (%llukb)", digest, length/1024);
         [self onSyncQueue: ^{
             if (stream) {
-                _pushProgress.totalUnitCount += length/1024;
-                [_pushProgress becomeCurrentWithPendingUnitCount: length/1024];
+                self->_pushProgress.totalUnitCount += length/1024;
+                [self->_pushProgress becomeCurrentWithPendingUnitCount: length/1024];
                 NSProgress* attProgress = [self addAttachmentProgressWithName: digest
                                                                        length: length
                                                                       pulling: NO];
-                [_pushProgress resignCurrent];
+                [self->_pushProgress resignCurrent];
 
                 BLIPResponse* response = [request response];
                 response.compressed = $equal(request[@"compress"], @"true");

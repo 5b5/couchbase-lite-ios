@@ -220,7 +220,7 @@
 
 - (BOOL) registerAttachmentBodies: (NSDictionary*)attachments
                       forRevision: (CBL_MutableRevision*)rev
-                            error: (NSError**)outError
+                            error: (NSError*__autoreleasing *)outError
 {
     __block BOOL ok = YES;
     [rev mutateAttachments: ^NSDictionary *(NSString *name, NSDictionary *meta) {
@@ -372,12 +372,12 @@ static UInt64 smallestLength(NSDictionary* attachment) {
         } else if (attachment.encodedContent) {
             // If there's inline attachment data, decode and store it:
             CBLBlobKey blobKey;
-            if (![_attachments storeBlob: attachment.encodedContent creatingKey: &blobKey]) {
+            if (![self->_attachments storeBlob: attachment.encodedContent creatingKey: &blobKey]) {
                 *outStatus = kCBLStatusAttachmentError;
                 return nil;
             }
             attachment.blobKey = blobKey;
-        } else if ([attachInfo[@"follows"] isEqual: $true] || _pendingAttachmentsByDigest[attachment.digest] != nil) {
+        } else if ([attachInfo[@"follows"] isEqual: $true] || self->_pendingAttachmentsByDigest[attachment.digest] != nil) {
             // "follows" means the uploader provided the attachment in a separate MIME part.
             // This means it's already been registered in _pendingAttachmentsByDigest;
             // I just need to look it up by its "digest" property and install it into the store:
@@ -394,7 +394,7 @@ static UInt64 smallestLength(NSDictionary* attachment) {
                                                        status: &status];
                 if (!parentAttachments) {
                     if (status == kCBLStatusOK || status == kCBLStatusNotFound) {
-                        if (attachment.hasBlobKey && [_attachments hasBlobForKey: attachment.blobKey]) {
+                        if (attachment.hasBlobKey && [self->_attachments hasBlobForKey: attachment.blobKey]) {
                             // Parent revision's body isn't known (we are probably pulling a rev along
                             // with its entire history) but it's OK, we have the attachment already
                             *outStatus = kCBLStatusOK;

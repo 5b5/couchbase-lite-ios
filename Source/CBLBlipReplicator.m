@@ -51,7 +51,7 @@
     BOOL _suspended;
     CBLSyncConnection* _sync;
     NSProgress* _progress;
-    void (^_updateProgressSoon)();
+    void (^_updateProgressSoon)(void);
 }
 
 @synthesize db=_db, settings=_settings, error=_error, sessionID=_sessionID;
@@ -110,7 +110,7 @@
 - (void) stop {
     if (_started) {
         dispatch_async(_syncQueue, ^{
-            [_sync close];
+            [self->_sync close];
         });
     }
 }
@@ -223,7 +223,7 @@
 
     LogTo(Sync, @"Retrying connection in %g sec ...", retryDelay);
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(retryDelay * NSEC_PER_SEC)), _syncQueue, ^{
-        if (_started && !_sync)
+        if (self->_started && !self->_sync)
             [self connect];
     });
 }
@@ -335,17 +335,17 @@
     [_db doAsync:^{
         static const char* kStateNames[] = {"Stopped", "Offline", "Idle", "Active"};
         LogTo(Sync, @"Replicator.status = kReplicator%s", kStateNames[newStatus]);
-        _changesProcessed = changesProcessed;
-        _changesTotal = changesTotal;
+        self->_changesProcessed = changesProcessed;
+        self->_changesTotal = changesTotal;
 #if DEBUG
         LogTo(Sync, @"          .active=%d, .savingCheckpoint=%d, .lastSequence=%@",
               newActive, newSavingCheckpoint, newLastSequence);
-        _active = newActive;
-        _savingCheckpoint = newSavingCheckpoint;
-        _lastSequence = newLastSequence;
+        self->_active = newActive;
+        self->_savingCheckpoint = newSavingCheckpoint;
+        self->_lastSequence = newLastSequence;
 #endif
         [self gotError: newError];
-        if (newStatus != _status) {
+        if (newStatus != self->_status) {
             self.status = newStatus; // Triggers KVO!
             [[NSNotificationCenter defaultCenter]
                  postNotificationName: CBL_ReplicatorProgressChangedNotification object: self];
@@ -371,14 +371,14 @@
     [_db doAsync:^{
         LogTo(Sync, @"Replicator.progress = %lu / %lu",
               (unsigned long)changesProcessed, (unsigned long)changesTotal);
-        _changesProcessed = changesProcessed;
-        _changesTotal = changesTotal;
+        self->_changesProcessed = changesProcessed;
+        self->_changesTotal = changesTotal;
 #if DEBUG
         LogTo(Sync, @"          .active=%d, .savingCheckpoint=%d, .lastSequence=%@",
               newActive, newSavingCheckpoint, newLastSequence);
-        _active = newActive;
-        _savingCheckpoint = newSavingCheckpoint;
-        _lastSequence = newLastSequence;
+        self->_active = newActive;
+        self->_savingCheckpoint = newSavingCheckpoint;
+        self->_lastSequence = newLastSequence;
 #endif
         [[NSNotificationCenter defaultCenter]
                      postNotificationName: CBL_ReplicatorProgressChangedNotification object: self];

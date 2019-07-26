@@ -254,17 +254,17 @@ DefineLogDomain(Query);
         // on the main thread. Force it to generate all the rows now & buffer them in an array:
         (void)e.allObjects;
 
-        [_database doAsync: ^{
+        [self->_database doAsync: ^{
             // Back on original thread, call the onComplete block:
             LogTo(Query, @"%@: ...async query finished (%u rows, status %d)",
                   self, (unsigned)e.count, status);
             NSError* error = nil;
             if (e) {
-                [e setDatabase: _database view: _view];
-                if (_sortDescriptors.count > 0)
-                    [e sortUsingDescriptors: _sortDescriptors
-                                       skip: _skip
-                                      limit: _limit];
+                [e setDatabase: self->_database view: self->_view];
+                if (self->_sortDescriptors.count > 0)
+                    [e sortUsingDescriptors: self->_sortDescriptors
+                                       skip: self->_skip
+                                      limit: self->_limit];
             } else if (CBLStatusIsError(status)) {
                 error = CBLStatusToNSError(status);
             }
@@ -384,7 +384,7 @@ DefineLogDomain(Query);
     updateDelay = MAX(0, MIN(_updateInterval, updateDelay));
     LogTo(Query, @"%@: Will update after %g sec...", self, updateDelay);
     [self.database doAsyncAfterDelay: updateDelay block: ^{
-        if (_willUpdate)
+        if (self->_willUpdate)
             [self update];
     }];
 }
@@ -424,20 +424,20 @@ DefineLogDomain(Query);
     [self runAsyncIfChangedSince: since
                       onComplete: ^(CBLQueryEnumerator *rows, NSError* error) {
         // Async update finished:
-        _isUpdatingAtSequence = 0;
-        _lastError = error;
+        self->_isUpdatingAtSequence = 0;
+        self->_lastError = error;
         if (error) {
             Warn(@"%@: Error updating rows: %@", self, error.my_compactDescription);
         } else {
-            _lastSequence = (SequenceNumber)rows.sequenceNumber;
-            if(rows && ![rows isEqual: _rows]) {
+            self->_lastSequence = (SequenceNumber)rows.sequenceNumber;
+            if(rows && ![rows isEqual: self->_rows]) {
                 LogTo(Query, @"%@: ...Rows changed! (now %lu)", self, (unsigned long)rows.count);
                 self.rows = rows;   // Triggers KVO notification
             } else {
                 LogVerbose(Query, @"%@: ...Rows NOT changed; not updating .rows", self);
             }
         }
-        if (_updateAgain)
+        if (self->_updateAgain)
             [self update];
     }];
 }
@@ -445,7 +445,7 @@ DefineLogDomain(Query);
 
 - (BOOL) waitForRows {
     [self start];
-    return [self.database waitFor: ^BOOL { return _rows != nil || _lastError != nil; }]
+    return [self.database waitFor: ^BOOL { return self->_rows != nil || self->_lastError != nil; }]
         && _rows != nil;
 }
 

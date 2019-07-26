@@ -224,7 +224,7 @@ NSString* CBL_ReplicatorStoppedNotification = @"CBL_ReplicatorStopped";
 
 - (void) deleteAllCookies {
     [self tellCookieStorage: ^(CBLCookieStorage* storage) {
-        [storage deleteCookiesForURL: _remoteURL];
+        [storage deleteCookiesForURL: self->_remoteURL];
     }];
 }
 
@@ -335,7 +335,7 @@ NSString* CBL_ReplicatorStoppedNotification = @"CBL_ReplicatorStopped";
 
     BOOL stopping = [[self tellReplicatorAndWait: ^id(id<CBL_Replicator> bgReplicator) {
         if (bgReplicator.status != kCBLReplicatorStopped) {
-            _bg_stopLock = [[NSConditionLock alloc] initWithCondition: 0];
+            self->_bg_stopLock = [[NSConditionLock alloc] initWithCondition: 0];
             [bgReplicator stop];
             return @(YES);
         }
@@ -353,7 +353,7 @@ NSString* CBL_ReplicatorStoppedNotification = @"CBL_ReplicatorStopped";
         Warn(@"%@: Timeout waiting for background stop notification", self);
 
     [self tellReplicatorAndWait: ^id(id<CBL_Replicator> bgReplicator) {
-        _bg_stopLock = nil;
+        self->_bg_stopLock = nil;
         return @(YES);
     }];
 }
@@ -588,13 +588,13 @@ NSString* CBL_ReplicatorStoppedNotification = @"CBL_ReplicatorStopped";
 
 - (void) tellReplicator: (void (^)(id<CBL_Replicator>))block {
     [_database.manager.backgroundServer tellDatabaseManager: ^(CBLManager* _) {
-        block(_bg_replicator);
+        block(self->_bg_replicator);
     }];
 }
 
 - (id) tellReplicatorAndWait: (id (^)(id<CBL_Replicator>))block {
     return [_database.manager.backgroundServer waitForDatabaseManager: ^(CBLManager* _) {
-        return block(_bg_replicator);
+        return block(self->_bg_replicator);
     }];
 }
 
@@ -605,9 +605,9 @@ NSString* CBL_ReplicatorStoppedNotification = @"CBL_ReplicatorStopped";
             block(bgRepl);
         } else {
             // Otherwise, queue the action till the replicator starts:
-            if (!_bg_pendingActions)
-                _bg_pendingActions = [NSMutableArray new];
-            [_bg_pendingActions addObject: block];
+            if (!self->_bg_pendingActions)
+                self->_bg_pendingActions = [NSMutableArray new];
+            [self->_bg_pendingActions addObject: block];
         }
     }];
 }

@@ -96,10 +96,10 @@
 }
 
 
-- (BOOL) runStatements: (NSString*)sql error: (NSError**)outError {
+- (BOOL) runStatements: (NSString*)sql error: (NSError*__autoreleasing *)outError {
     CBL_SQLiteStorage* db = _dbStorage;
     return [db inTransaction: ^CBLStatus {
-        if ([_dbStorage runStatements: [self queryString: sql] error: outError])
+        if ([self->_dbStorage runStatements: [self queryString: sql] error: outError])
             return kCBLStatusOK;
         else {
             return db.lastDbStatus;
@@ -206,7 +206,7 @@
     CBL_SQLiteStorage* db = _dbStorage;
     [db inTransaction: ^CBLStatus {
         [self deleteIndex];
-        [db.fmdb executeUpdate: @"DELETE FROM views WHERE name=?", _name];
+        [db.fmdb executeUpdate: @"DELETE FROM views WHERE name=?", self->_name];
         return db.lastDbStatus;
     }];
     _viewID = 0;
@@ -813,7 +813,7 @@ typedef CBLStatus (^QueryRowBlock)(NSData* keyData, NSData* valueData, NSString*
                                              status: &linkedStatus];
                 sequence = docRevision.sequence;
             } else {
-                docRevision = [_dbStorage revisionWithDocID: docID
+                docRevision = [self->_dbStorage revisionWithDocID: docID
                                                       revID: [r revIDForColumnIndex: 4]
                                                     deleted: NO
                                                    sequence: sequence
@@ -821,7 +821,7 @@ typedef CBLStatus (^QueryRowBlock)(NSData* keyData, NSData* valueData, NSString*
             }
         }
         LogVerbose(Query, @"Query %@: Found row with key=%@, value=%@, id=%@",
-              _name, [keyData my_UTF8ToString], [valueData my_UTF8ToString],
+                   self->_name, [keyData my_UTF8ToString], [valueData my_UTF8ToString],
               toJSONString(docID));
         CBLQueryRow* row;
         if (options->bbox) {
@@ -1080,7 +1080,7 @@ static id callReduce(CBLReduceBlock reduceBlock, NSMutableArray* keys, NSMutable
             lastKeyData = [keyData copy];
         }
         LogVerbose(Query, @"Query %@: Will reduce row with key=%@, value=%@",
-              _name, [keyData my_UTF8ToString], [valueData my_UTF8ToString]);
+                   self->_name, [keyData my_UTF8ToString], [valueData my_UTF8ToString]);
 
         id valueOrData = valueData;
         if (valuesToReduce && CBLQueryRowValueIsEntireDoc(valueData)) {

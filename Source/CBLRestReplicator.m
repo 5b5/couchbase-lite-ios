@@ -271,7 +271,7 @@ static NSString* const kSyncGatewayServerHeaderPrefix = @"Couchbase Sync Gateway
                            self, (unsigned)inbox.count);
                      CBL_RevisionList* revs = [[CBL_RevisionList alloc] initWithArray: inbox];
                      [self processInbox: revs];
-                     LogVerbose(Sync, @"*** %@: END processInbox (lastSequence=%@)", self, _lastSequence);
+        LogVerbose(Sync, @"*** %@: END processInbox (lastSequence=%@)", self, self->_lastSequence);
                      [self updateActive];
                  }
                 ];
@@ -738,7 +738,7 @@ static NSString* const kSyncGatewayServerHeaderPrefix = @"Couchbase Sync Gateway
                           path: [@"_local/" stringByAppendingString: checkpointID]
                           body: nil
                   onCompletion: ^(id response, NSError* error) {
-                  if (!_online) {
+            if (!self->_online) {
                       // FIX: https://github.com/couchbase/couchbase-lite-ios/issues/1655
                       // Prevent a race condition between aborting the request when putting the
                       // replicator offine and the request is completed.
@@ -760,15 +760,15 @@ static NSString* const kSyncGatewayServerHeaderPrefix = @"Couchbase Sync Gateway
                       NSString* remoteLastSequence = response[@"lastSequence"];
 
                       if ($equal(remoteLastSequence, localLastSequence)) {
-                          _lastSequence = localLastSequence;
-                          if (!_lastSequence) {
+                          self->_lastSequence = localLastSequence;
+                          if (!self->_lastSequence) {
                               // Try to get the last sequence from the local checkpoint document
                               // created only when importing a database. This allows the
                               // replicator to continue replicating from the current local checkpoint
                               // of the imported database after importing.
-                              _lastSequence = [self getLastSequenceFromLocalCheckpointDocument];
+                              self->_lastSequence = [self getLastSequenceFromLocalCheckpointDocument];
                           }
-                          LogTo(Sync, @"%@: Replicating from lastSequence=%@", self, _lastSequence);
+                          LogTo(Sync, @"%@: Replicating from lastSequence=%@", self, self->_lastSequence);
                       } else {
                           LogTo(Sync, @"%@: lastSequence mismatch: I had %@, remote had %@ (response = %@)",
                                 self, localLastSequence, remoteLastSequence, response);
@@ -793,16 +793,16 @@ static NSString* const kSyncGatewayServerHeaderPrefix = @"Couchbase Sync Gateway
                       path: [@"_local/" stringByAppendingString: self.remoteCheckpointDocID]
                       body: nil
               onCompletion: ^(id response, NSError* error) {
-                  if (!_db)
+        if (!self->_db)
                       return;
-                  _savingCheckpoint = NO;
+        self->_savingCheckpoint = NO;
                   if (error && error.code != kCBLStatusNotFound) {
                       LogTo(Sync, @"%@: Error refreshing remote checkpoint: %@",
                             self, error.my_compactDescription);
                   } else {
                       LogTo(Sync, @"%@ Refreshed remote checkpoint: %@", self, response);
                       self.remoteCheckpoint = $castIf(NSDictionary, response);
-                      _lastSequenceChanged = YES;
+                      self->_lastSequenceChanged = YES;
                       [self saveLastSequence]; // try saving again
                   }
                   [self asyncTasksFinished: 1];
@@ -843,17 +843,17 @@ static NSString* const kSyncGatewayServerHeaderPrefix = @"Couchbase Sync Gateway
                           body: body
                   onCompletion: ^(id response, NSError* error)
     {
-        _savingCheckpoint = NO;
+        self->_savingCheckpoint = NO;
         if (error)
             Warn(@"%@: Unable to save remote checkpoint: %@", self, error.my_compactDescription);
-        CBLDatabase* db = _db;
+        CBLDatabase* db = self->_db;
         if (db) {
             if (error) {
                 // Failed to save checkpoint:
                 switch(CBLStatusFromNSError(error, 0)) {
                     case kCBLStatusNotFound:
                         self.remoteCheckpoint = nil; // doc deleted or db reset
-                        _overdueForSave = YES; // try saving again
+                        self->_overdueForSave = YES; // try saving again
                         break;
                     case kCBLStatusConflict:
                         [self refreshRemoteCheckpointDoc];
@@ -874,7 +874,7 @@ static NSString* const kSyncGatewayServerHeaderPrefix = @"Couchbase Sync Gateway
                 LogTo(Sync, @"%@ saved remote checkpoint '%@' (_rev=%@)",
                       self, lastSequence, rev);
             }
-            if (_overdueForSave)
+            if (self->_overdueForSave)
                 [self saveLastSequence];      // start a save that was waiting on me
         }
         [self asyncTasksFinished: 1];

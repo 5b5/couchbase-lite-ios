@@ -36,6 +36,10 @@ UsingLogDomain(Sync);
 
 #define kReadLength 4096u
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
+
 
 @implementation CBLSocketChangeTracker
 {
@@ -363,5 +367,6 @@ UsingLogDomain(Sync);
     }
 }
 
+#pragma clang diagnostic pop
 
 @end

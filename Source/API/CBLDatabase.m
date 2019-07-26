@@ -136,16 +136,16 @@ static id<CBLFilterCompiler> sFilterCompiler;
 }
 
 
-static void catchInBlock(void (^block)()) {
+static void catchInBlock(void (^block)(void)) {
     @try {
         block();
     }catchAndReport(@"-[CBLDatabase doAsync:]");
 }
 
 
-- (void) doAsync: (void (^)())block {
+- (void) doAsync: (void (^)(void))block {
     block = ^{
-        if (_isOpen)
+        if (self->_isOpen)
             catchInBlock(block);
     };
     if (_dispatchQueue)
@@ -155,7 +155,7 @@ static void catchInBlock(void (^block)()) {
 }
 
 
-- (void) doSync: (void (^)())block {
+- (void) doSync: (void (^)(void))block {
     if (_dispatchQueue)
         dispatch_sync(_dispatchQueue, ^{catchInBlock(block);});
     else
@@ -163,9 +163,9 @@ static void catchInBlock(void (^block)()) {
 }
 
 
-- (void) doAsyncAfterDelay: (NSTimeInterval)delay block: (void (^)())block {
+- (void) doAsyncAfterDelay: (NSTimeInterval)delay block: (void (^)(void))block {
     block = ^{
-        if (_isOpen)
+        if (self->_isOpen)
             catchInBlock(block);
     };
     if (_dispatchQueue) {
@@ -178,7 +178,7 @@ static void catchInBlock(void (^block)()) {
 }
 
 
-- (BOOL) waitFor: (BOOL (^)())block {
+- (BOOL) waitFor: (BOOL (^)(void))block {
     if (_dispatchQueue) {
         Warn(@"-[CBLDatabase waitFor:] cannot be used with dispatch queues, only runloops");
         return NO;
@@ -305,7 +305,7 @@ static void catchInBlock(void (^block)()) {
         return CBLStatusToOutNSError(kCBLStatusNotImplemented, outError);
     [action addAction: [_attachments actionToChangeEncryptionKey: newKey]];
     [action addPerform:^BOOL(NSError** error) {
-        [_manager registerEncryptionKey: newKeyOrPassword forDatabaseNamed: _name];
+        [self->_manager registerEncryptionKey: newKeyOrPassword forDatabaseNamed: self->_name];
         return YES;
     } backOut: nil cleanUp: nil];
     return [action run: outError];

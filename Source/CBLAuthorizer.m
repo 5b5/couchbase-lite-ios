@@ -191,7 +191,10 @@ BOOL CBLForceTrusted(SecTrustRef trust) {
     SecTrustResultType result;
     SecTrustSetExceptions(trust, exception);
     CFRelease(exception);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     SecTrustEvaluate(trust, &result);
+#pragma clang diagnostic pop
     return YES;
 }
 
@@ -205,7 +208,10 @@ BOOL CBLCheckSSLServerTrust(SecTrustRef trust, NSString* host, UInt16 port, NSDa
         }
     }
     SecTrustResultType result;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     OSStatus err = SecTrustEvaluate(trust, &result);
+#pragma clang diagnostic pop
     if (err) {
         Warn(@"CBLCheckSSLServerTrust: SecTrustEvaluate failed with err %d", (int)err);
         return NO;

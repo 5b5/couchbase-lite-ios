@@ -277,11 +277,11 @@ NSString* const CBLCookieStorageCookiesChangedNotification = @"CookieStorageCook
     if (![_db.storage infoForKey: kDatabaseInfoCookiesKey]) {
         __block NSError* error;
         BOOL success = [_db inTransaction: ^BOOL{
-            NSDictionary* localCheckpointDoc = [_db getLocalCheckpointDocument];
+            NSDictionary* localCheckpointDoc = [self->_db getLocalCheckpointDocument];
             for (NSString* key in localCheckpointDoc.allKeys) {
                 if ([key hasPrefix: kOldLocalDocKeyPrefix]) {
                     [self loadCookieFromJSON: [localCheckpointDoc objectForKey: key]];
-                    if (![_db removeLocalCheckpointDocumentWithKey: key outError: &error])
+                    if (![self->_db removeLocalCheckpointDocumentWithKey: key outError: &error])
                         return NO;
                 }
             }

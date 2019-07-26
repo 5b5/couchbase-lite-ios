@@ -371,10 +371,10 @@ DefineLogDomain(SQL);
                 sql = $sprintf(@"ATTACH DATABASE ? AS rekeyed_db KEY \"x'%@'\"", newKey.hexData);
             else
                 sql = @"ATTACH DATABASE ? AS rekeyed_db KEY ''";
-            return [self checkUpdate: [_fmdb executeUpdate: sql, tempPath] error: outError];
+            return [self checkUpdate: [self->_fmdb executeUpdate: sql, tempPath] error: outError];
         } backOutOrCleanUp:^BOOL(NSError **outError) {
             return dbWasClosed ||
-                        [self checkUpdate: [_fmdb executeUpdate: @"DETACH DATABASE rekeyed_db"]
+            [self checkUpdate: [self->_fmdb executeUpdate: @"DETACH DATABASE rekeyed_db"]
                                     error: outError];
         }];
 
@@ -382,16 +382,16 @@ DefineLogDomain(SQL);
         // <https://www.zetetic.net/sqlcipher/sqlcipher-api/#sqlcipher_export>
         [action addPerform:^BOOL(NSError **outError) {
             NSString* vers = $sprintf(@"PRAGMA rekeyed_db.user_version = %d", self.schemaVersion);
-            return [self checkUpdate: [_fmdb executeUpdate:@"SELECT sqlcipher_export('rekeyed_db')"]
+            return [self checkUpdate: [self->_fmdb executeUpdate:@"SELECT sqlcipher_export('rekeyed_db')"]
                                error: outError]
-                && [self checkUpdate: [_fmdb executeUpdate: vers]
+            && [self checkUpdate: [self->_fmdb executeUpdate: vers]
                                error: outError];
         } backOut: NULL cleanUp: NULL];
     }
 
     // Close the database (and re-open it on cleanup):
     [action addPerform: ^BOOL(NSError **outError) {
-        [_fmdb close];
+        [self->_fmdb close];
         dbWasClosed = YES;
         return YES;
     } backOut: ^BOOL(NSError **outError) {
@@ -644,7 +644,7 @@ DefineLogDomain(SQL);
 // transaction, only its changes are rolled back, not any from the outer transaction.
 // (Also supports retrying the block if it fails with a SQLite "BUSY" error, but this shouldn't
 // occur anymore now that our hacked FMDB uses a mutex to enforce database locking.)
-- (CBLStatus) inTransaction: (CBLStatus(^)())block {
+- (CBLStatus) inTransaction: (CBLStatus(^)(void))block {
     CBLStatus status;
     int retries = 0;
     do {
@@ -677,7 +677,7 @@ DefineLogDomain(SQL);
 // only the outer one. There turns out to be significant overhead in a nested transaction, so in
 // cases where you just need to exclude other threads, and don't need to be able to roll back
 // the change you're making, this method is cheaper.
-- (CBLStatus) inOuterTransaction: (CBLStatus(^)())block {
+- (CBLStatus) inOuterTransaction: (CBLStatus(^)(void))block {
     if (!self.inTransaction)
         return [self inTransaction: block];
     // Instead of a nested transaction, just run the block and catch exceptions:
@@ -692,7 +692,7 @@ DefineLogDomain(SQL);
 }
 
 
-- (CBLStatus) withReadLock: (CBLStatus(^)())block {
+- (CBLStatus) withReadLock: (CBLStatus(^)(void))block {
     [_fmdb acquireReadLock];
     CBLStatus status;
     @try {
@@ -797,7 +797,7 @@ DefineLogDomain(SQL);
         else
             [sql appendString: @" FROM revs WHERE revs.doc_id=? and current=1 "
                                 "ORDER BY deleted ASC, revid DESC LIMIT 1"];
-        CBL_FMResultSet *r = [_fmdb executeQuery: sql, @(docNumericID), revID];
+        CBL_FMResultSet *r = [self->_fmdb executeQuery: sql, @(docNumericID), revID];
         if (!r) {
             return self.lastDbError;
         } else if (![r next]) {
@@ -868,7 +868,7 @@ DefineLogDomain(SQL);
         SInt64 docNumericID = [self getDocNumericID: rev.docID];
         if (docNumericID <= 0)
             return kCBLStatusNotFound;
-        CBL_FMResultSet *r = [_fmdb executeQuery: @"SELECT sequence, json FROM revs "
+        CBL_FMResultSet *r = [self->_fmdb executeQuery: @"SELECT sequence, json FROM revs "
                               "WHERE doc_id=? AND revid=? LIMIT 1",
                               @(docNumericID), rev.revID];
         if (!r)
@@ -918,7 +918,7 @@ DefineLogDomain(SQL);
         SInt64 docNumericID = [self getDocNumericID: rev.docID];
         if (docNumericID > 0) {
             NSString* sql = @"SELECT sequence FROM revs WHERE doc_id=? AND revid=? LIMIT 1";
-            sequence = [_fmdb longLongForQuery: sql, @(docNumericID), rev.revID];
+            sequence = [self->_fmdb longLongForQuery: sql, @(docNumericID), rev.revID];
         }
         return kCBLStatusOK;
     }];
@@ -932,20 +932,20 @@ DefineLogDomain(SQL);
         // First get the parent's sequence:
         SequenceNumber seq = rev.sequenceIfKnown;
         if (seq) {
-            seq = [_fmdb longLongForQuery: @"SELECT parent FROM revs WHERE sequence=?",
+            seq = [self->_fmdb longLongForQuery: @"SELECT parent FROM revs WHERE sequence=?",
                                     @(seq)];
         } else {
             SInt64 docNumericID = [self getDocNumericID: rev.docID];
             if (docNumericID <= 0)
                 return kCBLStatusNotFound;
-            seq = [_fmdb longLongForQuery: @"SELECT parent FROM revs WHERE doc_id=? and revid=?",
+            seq = [self->_fmdb longLongForQuery: @"SELECT parent FROM revs WHERE doc_id=? and revid=?",
                                     @(docNumericID), rev.revID];
         }
         if (seq == 0)
             return kCBLStatusNotFound;
 
         // Now get its revID and deletion status:
-        CBL_FMResultSet* r = [_fmdb executeQuery: @"SELECT revid, deleted FROM revs WHERE sequence=?",
+        CBL_FMResultSet* r = [self->_fmdb executeQuery: @"SELECT revid, deleted FROM revs WHERE sequence=?",
                                    @(seq)];
         if ([r next]) {
             result = [[CBL_Revision alloc] initWithDocID: rev.docID
@@ -975,7 +975,7 @@ DefineLogDomain(SQL);
         if (docNumericID <= 0)
             return kCBLStatusNotFound;
 
-        CBL_FMResultSet* r = [_fmdb executeQuery: @"SELECT sequence, parent, revid "
+        CBL_FMResultSet* r = [self->_fmdb executeQuery: @"SELECT sequence, parent, revid "
                                                    "FROM revs WHERE doc_id=? ORDER BY sequence DESC",
                                                   @(docNumericID)];
         if (!r)
@@ -1021,7 +1021,7 @@ DefineLogDomain(SQL);
             return self.lastDbError;
 
         if (docNumericID > 0) {
-            CBL_FMResultSet* r = [_fmdb executeQuery: @"SELECT sequence, parent, revid, deleted, json isnull "
+            CBL_FMResultSet* r = [self->_fmdb executeQuery: @"SELECT sequence, parent, revid, deleted, json isnull "
                                   "FROM revs WHERE doc_id=? ORDER BY sequence DESC",
                                   @(docNumericID)];
             if (!r)
@@ -1131,13 +1131,13 @@ DefineLogDomain(SQL);
         for (int current = 1; current >= 0; --current) {
             CBL_FMResultSet* r;
             if (withBodiesOnly) {
-                r = [_fmdb executeQuery: @"SELECT revid, json is not null, json FROM revs "
+                r = [self->_fmdb executeQuery: @"SELECT revid, json is not null, json FROM revs "
                      "WHERE doc_id=? and current=? and revid < ? "
                      "ORDER BY revid DESC LIMIT ?",
                      @(docNumericID), @(current), $sprintf(@"%d-", generation),
                      @(sqlLimit)];
             } else {
-                r = [_fmdb executeQuery: @"SELECT revid, json is not null FROM revs "
+                r = [self->_fmdb executeQuery: @"SELECT revid, json is not null FROM revs "
                      "WHERE doc_id=? and current=? and revid < ? "
                      "ORDER BY revid DESC LIMIT ?",
                      @(docNumericID), @(current), $sprintf(@"%d-", generation),
@@ -1187,9 +1187,9 @@ DefineLogDomain(SQL);
                                   "WHERE doc_id=? and revid in (%@) and revid <= ? "
                                   "ORDER BY revid DESC LIMIT 1", 
                                   CBLJoinSQLQuotedStrings(revIDs));
-        _fmdb.shouldCacheStatements = NO;
-        ancestor = [_fmdb stringForQuery: sql, @(docNumericID), rev.revID];
-        _fmdb.shouldCacheStatements = YES;
+        self->_fmdb.shouldCacheStatements = NO;
+        ancestor = [self->_fmdb stringForQuery: sql, @(docNumericID), rev.revID];
+        self->_fmdb.shouldCacheStatements = YES;
         return self.lastDbStatus;
     }];
     return ancestor.cbl_asRevID;
@@ -1351,10 +1351,10 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
     NSMutableArray* rows = $marray();
     *outStatus = [self withReadLock: ^CBLStatus {
         if (!cacheQuery)
-            _fmdb.shouldCacheStatements = NO;
-        CBL_FMResultSet* r = [_fmdb executeQuery: sql withArgumentsInArray: args];
+            self->_fmdb.shouldCacheStatements = NO;
+        CBL_FMResultSet* r = [self->_fmdb executeQuery: sql withArgumentsInArray: args];
         if (!cacheQuery)
-            _fmdb.shouldCacheStatements = YES;
+            self->_fmdb.shouldCacheStatements = YES;
         if (!r)
             return self.lastDbError;
 
@@ -1635,11 +1635,11 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
         if (!revID) {
             // Didn't specify a revision to delete: kCBLStatusNotFound or a kCBLStatusConflict, depending
             return [self getLocalDocumentWithID: docID revisionID: nil] ? kCBLStatusConflict
-                                                                        : kCBLStatusNotFound;
+            : kCBLStatusNotFound;
         }
-        if (![_fmdb executeUpdate: @"DELETE FROM localdocs WHERE docid=? AND revid=?", docID, revID])
+        if (![self->_fmdb executeUpdate: @"DELETE FROM localdocs WHERE docid=? AND revid=?", docID, revID])
             return self.lastDbError;
-        if (_fmdb.changes == 0)
+        if (self->_fmdb.changes == 0)
             return [self getLocalDocumentWithID: docID revisionID: nil] ? kCBLStatusConflict
                                                                         : kCBLStatusNotFound;
         return kCBLStatusOK;
@@ -1668,7 +1668,7 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
              allowConflict: (BOOL)allowConflict
            validationBlock: (CBL_StorageValidationBlock)validationBlock
                     status: (CBLStatus*)outStatus
-                     error: (NSError**)outError
+                     error: (NSError*__autoreleasing *)outError
 {
     if (outError)
         *outError = nil;
@@ -1830,7 +1830,7 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
             // The insert failed. If it was due to a constraint violation, that means a revision
             // already exists with identical contents and the same parent rev. We can ignore this
             // insert call, then.
-            if (_fmdb.lastErrorCode != SQLITE_CONSTRAINT)
+            if (self->_fmdb.lastErrorCode != SQLITE_CONSTRAINT)
                 return self.lastDbError;
             LogTo(Database, @"Duplicate rev PUT: %@ / %@ (parent seq %lld)",
                   docID, newRevID, parentSequence);
@@ -1839,12 +1839,12 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
             // The pre-existing revision may have a nulled-out parent link since its original
             // parent may have been pruned earlier. Fix that link:
             if (parentSequence) {
-                if (![_fmdb executeUpdate: @"UPDATE revs SET parent=? "
+                if (![self->_fmdb executeUpdate: @"UPDATE revs SET parent=? "
                                             "WHERE doc_id=? and revid=? and parent isnull",
                       @(parentSequence), @(docNumericID), newRevID]) {
                     return self.lastDbError;
                 }
-                if (_fmdb.changes > 0)
+                if (self->_fmdb.changes > 0)
                     LogVerbose(Database, @"    fixed parent link of pre-existing rev");
             }
             // Keep going, to make the parent rev non-current, before returning...
@@ -1852,10 +1852,10 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
         
         // Make replaced rev non-current:
         if (parentSequence > 0) {
-            if (![_fmdb executeUpdate: @"UPDATE revs SET current=0, doc_type=null WHERE sequence=?",
+            if (![self->_fmdb executeUpdate: @"UPDATE revs SET current=0, doc_type=null WHERE sequence=?",
                                        @(parentSequence)]) {
                 CBLStatus status = self.lastDbError;
-                [_fmdb executeUpdate: @"DELETE FROM revs WHERE sequence=?", @(sequence)];
+                [self->_fmdb executeUpdate: @"DELETE FROM revs WHERE sequence=?", @(sequence)];
                 return status;
             }
             LogVerbose(Database, @"    cleared current and doc_type of parent");
@@ -1865,7 +1865,7 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
             return kCBLStatusOK;  // duplicate rev; see above
 
         // Delete the deepest revs in the tree to enforce the maxRevTreeDepth:
-        int minGenToKeep = (int)newRev.generation - (int)_maxRevTreeDepth + 1;
+        int minGenToKeep = (int)newRev.generation - (int)self->_maxRevTreeDepth + 1;
         if (minGenToKeep > 1) {
             NSInteger pruned = [self pruneDocument: docID
                                          numericID: docNumericID
@@ -1905,7 +1905,7 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
           revisionHistory: (NSArray<CBL_RevID*>*)fullHistory
           validationBlock: (CBL_StorageValidationBlock)validationBlock
                    source: (NSURL*)source
-                    error: (NSError**)outError
+                    error: (NSError*__autoreleasing *)outError
 {
     AssertContainsRevIDs(fullHistory);
     if (outError)
@@ -1969,9 +1969,9 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
         if (commonAncestorIndex < fullHistoryCount) {
             // Trim history to new revisions
             history = [fullHistory subarrayWithRange: NSMakeRange(0, commonAncestorIndex)];
-        } else if (fullHistoryCount > _maxRevTreeDepth) {
+            } else if (fullHistoryCount > self->_maxRevTreeDepth) {
             // If no common ancestor, limit history to max depth:
-            history = [fullHistory subarrayWithRange: NSMakeRange(0, _maxRevTreeDepth)];
+                history = [fullHistory subarrayWithRange: NSMakeRange(0, self->_maxRevTreeDepth)];
         } else {
             history = fullHistory;
         }
@@ -2021,16 +2021,16 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
 
         // Mark the latest local rev as no longer current:
         if (commonAncestor) {
-            if (![_fmdb executeUpdate: @"UPDATE revs SET current=0, doc_type=null"
+            if (![self->_fmdb executeUpdate: @"UPDATE revs SET current=0, doc_type=null"
                                         " WHERE sequence=? AND current>0",
                   @(commonAncestor.sequence)])
                 return self.lastDbError;
-            if (_fmdb.changes == 0)
+            if (self->_fmdb.changes == 0)
                 inConflict = YES; // local parent wasn't a leaf, ergo we just created a branch
         }
 
         // Delete the deepest revs in the tree to enforce the maxRevTreeDepth:
-        if (inRev.generation > _maxRevTreeDepth) {
+        if (inRev.generation > self->_maxRevTreeDepth) {
             __block unsigned minGen, maxGen;
             maxGen = rev.generation;
             minGen = history.lastObject.generation;
@@ -2039,7 +2039,7 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
                 minGen = MIN(minGen, generation);
                 maxGen = MAX(maxGen, generation);
             }];
-            int minGenToKeep = maxGen - _maxRevTreeDepth + 1;
+            int minGenToKeep = maxGen - self->_maxRevTreeDepth + 1;
             if ((int)minGen < minGenToKeep) {
                 NSInteger pruned = [self pruneDocument: docID
                                              numericID: docNumericID
@@ -2177,9 +2177,9 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
             [self inTransaction:^CBLStatus{
                 LogTo(Database, @"%@: Optimizing SQL indexes (curSeq=%lld, last run at %lld)",
                       self, curSequence, lastOptimized);
-                [_fmdb executeUpdate: @"ANALYZE"];
-                [_fmdb executeUpdate: @"ANALYZE sqlite_master"];
-                [_fmdb clearCachedStatements];
+                [self->_fmdb executeUpdate: @"ANALYZE"];
+                [self->_fmdb executeUpdate: @"ANALYZE sqlite_master"];
+                [self->_fmdb clearCachedStatements];
                 [self setInfo: $sprintf(@"%lld", curSequence) forKey: @"last_optimized"];
                 return kCBLStatusOK;
             }];
@@ -2382,7 +2382,7 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
                 // Delete all revisions if magic "*" revision ID is given. Deleting the 'docs'
                 // row will delete all 'revs' rows due to cascading.
                 LogTo(Database, @"Purging doc '%@'", docID);
-                if (![_fmdb executeUpdate: @"DELETE FROM docs WHERE doc_id=?", @(docNumericID)])
+                if (![self->_fmdb executeUpdate: @"DELETE FROM docs WHERE doc_id=?", @(docNumericID)])
                     return self.lastDbError;
                 [self invalidateDocNumericID: docID];
                 [self notifyPurgedDocument: docID];
@@ -2392,7 +2392,7 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
                 // Iterate over all the revisions of the doc, in reverse sequence order.
                 // Keep track of all the sequences to delete, i.e. the given revs and ancestors,
                 // but not any non-given leaf revs or their ancestors.
-                CBL_FMResultSet* r = [_fmdb executeQuery: @"SELECT revid, sequence, parent FROM revs "
+                CBL_FMResultSet* r = [self->_fmdb executeQuery: @"SELECT revid, sequence, parent FROM revs "
                                                        "WHERE doc_id=? ORDER BY sequence DESC",
                                   @(docNumericID)];
                 if (!r)
@@ -2487,14 +2487,14 @@ NSString* CBLJoinSQLQuotedStrings(NSArray* strings) {
 
         // First capture the docIDs to be purged, so we can notify about them:
         NSMutableArray* purgedIDs = $marray();
-        CBL_FMResultSet* r = [_fmdb executeQuery:
+        CBL_FMResultSet* r = [self->_fmdb executeQuery:
                               @"SELECT docid FROM docs WHERE expiry_timestamp <= ?", now];
         while ([r next])
             [purgedIDs addObject: [r stringForColumnIndex: 0]];
         [r close];
 
         // Now delete the docs:
-        if (![_fmdb executeUpdate: @"DELETE FROM docs WHERE expiry_timestamp <= ?", now])
+        if (![self->_fmdb executeUpdate: @"DELETE FROM docs WHERE expiry_timestamp <= ?", now])
             return self.lastDbError;
 
         // Finally notify:

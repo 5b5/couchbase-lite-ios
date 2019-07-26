@@ -112,7 +112,7 @@ static NSMutableSet* sRunningRouters;
 
 - (NSString*) query: (NSString*)param {
     return [[(self.queries)[param] stringByReplacingOccurrencesOfString:@"+" withString:@" "]
-                    stringByReplacingPercentEscapesUsingEncoding: NSUTF8StringEncoding];
+                    stringByRemovingPercentEncoding];
 }
 
 - (BOOL) boolQuery: (NSString*)param {
@@ -340,7 +340,7 @@ static NSArray* splitPath( NSURL* url ) {
     NSMutableArray* path = $marray();
     for (NSString* comp in [pathString componentsSeparatedByString: @"/"]) {
         if ([comp length] > 0) {
-            NSString* unescaped = [comp stringByReplacingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+            NSString* unescaped = [comp stringByRemovingPercentEncoding];
             if (!unescaped) {
                 path = nil;     // bad URL
                 break;
@@ -741,7 +741,7 @@ static NSArray* splitPath( NSURL* url ) {
         [self run];
     } else {
         [_server tellDatabaseManager: ^(CBLManager* dbm) {
-            _dbManager = dbm;
+            self->_dbManager = dbm;
             [self run];
         }];
     }

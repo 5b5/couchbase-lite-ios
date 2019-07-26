@@ -152,7 +152,7 @@ UsingLogDomain(Sync);
                                error: error
                         continuation: ^(BOOL loginAgain, NSError* continuationError)
             {
-                [_remoteSession doAsync:^{
+                [self->_remoteSession doAsync:^{
                     if (loginAgain) {
                         [self login];
                     } else {

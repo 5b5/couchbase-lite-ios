@@ -41,7 +41,7 @@ typedef NSArray<CBLJSONDict*> EventArray;
 
 // Internal enumerator implementation whose -nextObject method just calls a block
 @interface CBLTimeSeriesEnumerator : NSEnumerator<CBLJSONDict*>
-- (id) initWithBlock: (CBLJSONDict*(^)())block;
+- (id) initWithBlock: (CBLJSONDict*(^)(void))block;
 @end
 
 
@@ -139,19 +139,19 @@ typedef NSArray<CBLJSONDict*> EventArray;
         NSData* json = [CBLJSON dataWithJSONObject: props options: 0 error: NULL];
         Assert(json);
 
-        off_t pos = ftell(_out);
-        if (pos + json.length + 20 > kMaxDocSize || _eventsInFile >= kMaxDocEventCount) {
+        off_t pos = ftell(self->_out);
+        if (pos + json.length + 20 > kMaxDocSize || self->_eventsInFile >= kMaxDocEventCount) {
             [self transferToDB];
             pos = 0;
         }
 
-        if (fputs(pos==0 ? "[" : ",\n", _out) < 0
-                || fwrite(json.bytes, json.length, 1, _out) < 1
-                || fflush(_out) < 0)
+        if (fputs(pos==0 ? "[" : ",\n", self->_out) < 0
+            || fwrite(json.bytes, json.length, 1, self->_out) < 1
+            || fflush(self->_out) < 0)
         {
             [self checkWriteError];
         }
-        ++_eventsInFile;
+        ++self->_eventsInFile;
     });
 }
 
@@ -159,10 +159,10 @@ typedef NSArray<CBLJSONDict*> EventArray;
 - (void) flushAsync: (void(^)(BOOL))onFlushed {
     dispatch_async(_queue, ^{
         BOOL ok = YES;
-        if (_eventsInFile > 0 || ftell(_out) > 0) {
+        if (self->_eventsInFile > 0 || ftell(self->_out) > 0) {
             ok = [self transferToDB];
         }
-        [_db doAsync: ^{ onFlushed(ok); }];
+        [self->_db doAsync: ^{ onFlushed(ok); }];
     });
 }
 
@@ -281,7 +281,7 @@ typedef NSArray<CBLJSONDict*> EventArray;
         for (CBLJSONDict *doc in docs) {
             NSError* error;
             NSString* docID = doc[@"_id"];
-            if (![_db[docID] putProperties: doc error: &error]) {
+            if (![self->_db[docID] putProperties: doc error: &error]) {
                 Warn(@"CBLTimeSeries: Couldn't save events to '%@': %@", docID, error);
                 self.lastError = error;
                 ok = NO;
@@ -446,10 +446,10 @@ typedef NSArray<CBLJSONDict*> EventArray;
 // Internal enumerator implementation whose -nextObject method just calls a block
 @implementation CBLTimeSeriesEnumerator
 {
-    CBLJSONDict* (^_block)();
+    CBLJSONDict* (^_block)(void);
 }
 
-- (id) initWithBlock: (CBLJSONDict*(^)())block
+- (id) initWithBlock: (CBLJSONDict*(^)(void))block
 {
     self = [super init];
     if (self) {

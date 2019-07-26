@@ -62,14 +62,14 @@
     _creatingTarget = YES;
     [self asyncTaskStarted];
     [_remoteSession startRequest: @"PUT" path: @"" body: nil onCompletion: ^(id result, NSError* error) {
-        _creatingTarget = NO;
+        self->_creatingTarget = NO;
         if (error && error.code != kCBLStatusDuplicate && error.code != kCBLStatusMethodNotAllowed) {
             LogTo(Sync, @"Failed to create remote db: %@", error.my_compactDescription);
             self.error = error;
             [self stop]; // this is fatal: no db to push to!
         } else {
             LogTo(Sync, @"Created remote db");
-            _createTarget = NO;             // remember that I created the target
+            self->_createTarget = NO;             // remember that I created the target
             [self beginReplicating];
         }
         [self asyncTasksFinished: 1];
@@ -556,7 +556,7 @@ CBLStatus CBLStatusFromBulkDocsResponseItem(NSDictionary* item) {
                       if ($equal(error.domain, CBLHTTPErrorDomain)
                                 && error.code == kCBLStatusUnsupportedType) {
                           // Server doesn't like multipart, eh? Fall back to JSON.
-                          _dontSendMultipart = YES;
+                          self->_dontSendMultipart = YES;
                           [self uploadJSONRevision: rev];
                       } else
                           [self handleUploadRevisionError: error isBulkDocs: NO];
@@ -567,7 +567,7 @@ CBLStatus CBLStatusFromBulkDocsResponseItem(NSDictionary* item) {
                   self.changesProcessed++;
                   [self asyncTasksFinished: 1];
 
-                  _uploading = NO;
+        self->_uploading = NO;
                   [self startNextUpload];
               }
      ];

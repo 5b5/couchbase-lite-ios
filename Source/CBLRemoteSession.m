@@ -111,7 +111,7 @@ UsingLogDomain(Sync);
         // the -startRequest method.
         LogTo(RemoteRequest, @"CBLRemoteSession closing");
         [session finishTasksAndInvalidate];
-        _requestDelegate = nil;
+        self->_requestDelegate = nil;
     }];
 }
 
@@ -137,7 +137,7 @@ UsingLogDomain(Sync);
 
     [_session.delegateQueue addOperationWithBlock:^{
         // Now running on delegate queue:
-        _requestIDs[@(task.taskIdentifier)] = request;
+        self->_requestIDs[@(task.taskIdentifier)] = request;
         LogTo(RemoteRequest, @"CBLRemoteSession starting %@", request);
         [task resume]; // Go!
     }];
@@ -183,7 +183,7 @@ UsingLogDomain(Sync);
 }
 
 
-- (void) doAsync: (void (^)())block {
+- (void) doAsync: (void (^)(void))block {
     MYOnThread(_thread, block);
 }
 
@@ -211,7 +211,7 @@ UsingLogDomain(Sync);
             if (request.task == task) {
                 block(request);
             } else {
-                [_session.delegateQueue addOperationWithBlock:^{
+                [self->_session.delegateQueue addOperationWithBlock:^{
                     [self forgetTask: task];
                 }];
             }
@@ -234,8 +234,8 @@ UsingLogDomain(Sync);
     
     // Reset _allRequests on the API thread:
     [self doAsync: ^{
-        _session = nil;
-        _allRequests = nil;
+        self->_session = nil;
+        self->_allRequests = nil;
     }];
 }
 
@@ -313,9 +313,9 @@ UsingLogDomain(Sync);
         // pick up the new authorizer for later requests:
         NSInteger status = ((NSHTTPURLResponse*)response).statusCode;
         id<CBLAuthorizer> auth = request.authorizer;
-        if (auth && auth != _authorizer && status != 401) {
+        if (auth && auth != self->_authorizer && status != 401) {
             LogTo(RemoteRequest, @"%@: Updated to %@", self, auth);
-            _authorizer = auth;
+            self->_authorizer = auth;
         }
 
         completionHandler(request.running ? NSURLSessionResponseAllow : NSURLSessionResponseCancel);
@@ -338,7 +338,7 @@ UsingLogDomain(Sync);
 {
     LogTo(RemoteRequest, @"CBLRemoteSession done with %@", _requestIDs[@(task.taskIdentifier)]);
     [self requestForTask: task do: ^(CBLRemoteRequest *request) {
-        [_allRequests removeObject: request];
+        [self->_allRequests removeObject: request];
         if (error)
             [request didFailWithError: error];
         else

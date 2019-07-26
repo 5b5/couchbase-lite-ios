@@ -55,7 +55,10 @@
 
 static void evaluate(SecTrustRef trust, SecTrustCallback callback) {
     if (trust)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         SecTrustEvaluateAsync(trust, dispatch_get_main_queue(), callback);
+#pragma clang diagnostic pop
     else
         callback(trust, kSecTrustResultInvalid);
 }
@@ -75,15 +78,15 @@ static void evaluate(SecTrustRef trust, SecTrustCallback callback) {
                                           || result == kSecTrustResultOtherError) {
             ok = NO;
         } else if ([delegate respondsToSelector: @selector(authenticateConnectionFromAddress:withTrust:)]) {
-            _username = [delegate authenticateConnectionFromAddress: sock.connectedAddress
+            self->_username = [delegate authenticateConnectionFromAddress: sock.connectedAddress
                                                           withTrust: trust];
-            ok = (_username != nil);
+            ok = (self->_username != nil);
         } else {
             ok = (result == kSecTrustResultProceed || result == kSecTrustResultUnspecified
                                                    || result == kSecTrustResultInvalid);
             // kSecTrustResultInvalid means there's no TrustRef, i.e. no client cert. OK by default.
         }
-        _hasClientCert = (trustRef != nil) && ok;
+        self->_hasClientCert = (trustRef != nil) && ok;
         completionHandler(ok);
     });
 }

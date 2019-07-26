@@ -94,10 +94,10 @@ static int collateRevIDs(void *context,
 
     status = [_db.storage inTransaction: ^CBLStatus {
         int err;
-        while (SQLITE_ROW == (err = sqlite3_step(_docQuery))) {
+        while (SQLITE_ROW == (err = sqlite3_step(self->_docQuery))) {
             @autoreleasepool {
-                int64_t docNumericID = sqlite3_column_int64(_docQuery, 0);
-                NSString* docID = columnString(_docQuery, 1);
+                int64_t docNumericID = sqlite3_column_int64(self->_docQuery, 0);
+                NSString* docID = columnString(self->_docQuery, 1);
                 CBLStatus status = [self importDoc: docID numericID: docNumericID];
                 if (CBLStatusIsError(status))
                     return status;

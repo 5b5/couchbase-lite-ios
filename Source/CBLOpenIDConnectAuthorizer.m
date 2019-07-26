@@ -163,7 +163,7 @@ UsingLogDomain(Sync);
     NSURL* remoteURL = self.remoteURL;
     NSURL* redirectBaseURL = extractRedirectURL(loginURL);
     dispatch_async(dispatch_get_main_queue(), ^{
-        _loginCallback(loginURL, redirectBaseURL, ^(NSURL* authURL, NSError* error) {
+        self->_loginCallback(loginURL, redirectBaseURL, ^(NSURL* authURL, NSError* error) {
             if (authURL) {
                 LogTo(Sync, @"%@: App login callback returned authURL=<%@>",
                       self, authURL.absoluteString);
@@ -180,7 +180,7 @@ UsingLogDomain(Sync);
                 }
             }
             if (authURL) {
-                _authURL = authURL;
+                self->_authURL = authURL;
                 continuationBlock(YES, nil);
             } else {
                 if (!error)

@@ -46,7 +46,10 @@ typedef struct {
     if (self) {
         _store = store;
         CC_SHA1_Init(&_shaCtx);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         CC_MD5_Init(&_md5Ctx);
+#pragma clang diagnostic pop
 
         if (![self openFile])
             return nil;
@@ -80,7 +83,10 @@ typedef struct {
     _bytesWritten += dataLen;
     _progress.completedUnitCount = _bytesWritten;
     CC_SHA1_Update(&_shaCtx, data.bytes, (CC_LONG)dataLen);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     CC_MD5_Update(&_md5Ctx, data.bytes, (CC_LONG)dataLen);
+#pragma clang diagnostic pop
 
     if (_encryptor)
         data = _encryptor(data);
@@ -160,7 +166,10 @@ typedef struct {
 - (void) reset {
     [_out truncateFileAtOffset: 0];
     CC_SHA1_Init(&_shaCtx);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     CC_MD5_Init(&_md5Ctx);
+#pragma clang diagnostic pop
     _progress.completedUnitCount = 0;
 }
 
@@ -173,7 +182,10 @@ typedef struct {
     }
     [self closeFile];
     CC_SHA1_Final(_blobKey.bytes, &_shaCtx);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     CC_MD5_Final(_MD5Digest.bytes, &_md5Ctx);
+#pragma clang diagnostic pop
 }
 
 

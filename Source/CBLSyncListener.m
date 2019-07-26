@@ -89,7 +89,7 @@
         CBLSyncConnection* handler = [[CBLSyncConnection alloc] initWithDatabase: db
                                                                       connection: connection
                                                                            queue: queue];
-        if (_facade.readOnly) {
+        if (self->_facade.readOnly) {
             handler.onSyncAccessCheck = ^CBLStatus(BLIPRequest* request) {
                 NSString* profile = request.profile;
                 if ([profile isEqualToString:@"changes"] || [profile isEqualToString:@"rev"])
@@ -98,9 +98,9 @@
             };
         }
         [handler addObserver: self forKeyPath: @"state" options: 0 context: (void*)1];
-        dispatch_sync(_queue, ^{
-            [_handlers addObject: handler];
-            _facade.connectionCount = _handlers.count;
+        dispatch_sync(self->_queue, ^{
+            [self->_handlers addObject: handler];
+            self->_facade.connectionCount = self->_handlers.count;
         });
         return nil;
     }];
@@ -131,8 +131,8 @@
 
 - (void) setBonjourName: (NSString*)name type: (NSString*)type {
     dispatch_async(_queue, ^{
-        _bonjourName = name;
-        _bonjourType = type;
+        self->_bonjourName = name;
+        self->_bonjourType = type;
     });
 }
 
@@ -145,8 +145,8 @@
 - (void)setTXTRecordDictionary:(NSDictionary *)dict {
     NSData* txtData = dict ? [NSNetService dataFromTXTRecordDictionary: dict] : nil;
     dispatch_async(_queue, ^{
-        _txtData = txtData;
-        NSNetService* ns = _netService;
+        self->_txtData = txtData;
+        NSNetService* ns = self->_netService;
         if (ns) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 ns.TXTRecordData = txtData;
@@ -161,16 +161,16 @@
     if (_bonjourType) {
         dispatch_async(_queue, ^{
             NSNetService* ns = [[NSNetService alloc] initWithDomain: @""
-                                                               type: _bonjourType
-                                                               name: _bonjourName
+                                                               type: self->_bonjourType
+                                                               name: self->_bonjourName
                                                                port: self.port];
             // Set ns.includesPeerToPeer = YES but only if it's supported (OS X 10.10, iOS 7)
             // and without getting a false positive warning from DeployMate:
             if ([ns respondsToSelector: @selector(setIncludesPeerToPeer:)])
                 [ns setValue: @YES forKey: @"includesPeerToPeer"];
             ns.delegate = self;
-            ns.TXTRecordData = _txtData;
-            _netService = ns;
+            ns.TXTRecordData = self->_txtData;
+            self->_netService = ns;
             dispatch_async(dispatch_get_main_queue(), ^{
                 [ns publishWithOptions: 0];
             });
@@ -181,11 +181,11 @@
 
 - (void) listenerDidStop {
     dispatch_async(_queue, ^{
-        CBLSyncListener* facade = _facade;
+        CBLSyncListener* facade = self->_facade;
         facade.port = 0;
-        NSNetService* ns = _netService;
+        NSNetService* ns = self->_netService;
         if (ns) {
-            _netService = nil;
+            self->_netService = nil;
             facade.bonjourName = nil;
             dispatch_async(dispatch_get_main_queue(), ^{
                 ns.delegate = nil;

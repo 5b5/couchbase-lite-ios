@@ -123,7 +123,7 @@ UsingLogDomain(Sync);
 - (BOOL)webSocket:(PSWebSocket *)webSocket validateServerTrust: (SecTrustRef)trust {
     __block BOOL ok;
     MYOnThreadSynchronously(_thread, ^{
-        ok = [self checkServerTrust: trust forURL: _databaseURL];
+        ok = [self checkServerTrust: trust forURL: self->_databaseURL];
     });
     return ok;
 }
@@ -131,7 +131,7 @@ UsingLogDomain(Sync);
 - (void) webSocketDidOpen: (PSWebSocket*)ws {
     MYOnThread(_thread, ^{
         LogVerbose(ChangeTracker, @"%@: WebSocket opened", self);
-        _retryCount = 0;
+        self->_retryCount = 0;
         // Now that the WebSocket is open, send the changes-feed options (the ones that would have
         // gone in the POST body if this were HTTP-based.)
         [ws send: self.changesFeedPOSTBody];
@@ -140,15 +140,15 @@ UsingLogDomain(Sync);
 
 - (void)webSocket:(PSWebSocket *)webSocket didFailWithError:(NSError *)error {
     MYOnThread(_thread, ^{
-        _ws = nil;
+        self->_ws = nil;
         NSError* myError = error;
         if ([error.domain isEqualToString: PSWebSocketErrorDomain]) {
             if (error.code == PSWebSocketErrorCodeHandshakeFailed) {
                 // HTTP error; ask _httpLogic what to do:
                 CFHTTPMessageRef response = (__bridge CFHTTPMessageRef)error.userInfo[PSHTTPResponseErrorKey];
                 NSInteger status = CFHTTPMessageGetResponseStatusCode(response);
-                [_http receivedResponse: response];
-                if (_http.shouldRetry) {
+                [self->_http receivedResponse: response];
+                if (self->_http.shouldRetry) {
                     // Retry due to redirect or auth challenge:
                     LogVerbose(ChangeTracker, @"%@ got HTTP response %ld, retrying...",
                           self, (long)status);
@@ -182,26 +182,26 @@ UsingLogDomain(Sync);
 - (void) webSocket: (PSWebSocket*)ws didReceiveMessage: (id)msg {
     MYOnThread(_thread, ^{
         LogVerbose(ChangeTracker, @"%@: Got a message: %@", self, msg);
-        if (ws == _ws && _running) {
+        if (ws == self->_ws && self->_running) {
             __block NSData *data;
             if ([msg isKindOfClass: [NSData class]]) {
                 // Binary messages are gzip-compressed; actually they're segments of a single stream.
-                if (!_gzip)
-                    _gzip = [[CBLGZip alloc] initForCompressing: NO];
+                if (!self->_gzip)
+                    self->_gzip = [[CBLGZip alloc] initForCompressing: NO];
                 NSMutableData* decoded = [NSMutableData new];
-                [_gzip addBytes: [msg bytes] length: [msg length]
+                [self->_gzip addBytes: [msg bytes] length: [msg length]
                        onOutput:^(const void *bytes, size_t length) {
                            [decoded appendBytes: bytes length: length];
                 }];
-                [_gzip flush:^(const void *bytes, size_t length) {
+                [self->_gzip flush:^(const void *bytes, size_t length) {
                     [decoded appendBytes: bytes length: length];
                 }];
                 if (decoded.length == 0) {
                     Warn(@"CBLWebSocketChangeTracker: Couldn't unzip compressed message; status=%d",
-                         _gzip.status);
-                    [_ws closeWithCode: PSWebSocketStatusCodeUnhandledType
+                         self->_gzip.status);
+                    [self->_ws closeWithCode: PSWebSocketStatusCodeUnhandledType
                                 reason: @"Couldn't unzip change entry"];
-                    _running = NO;
+                    self->_running = NO;
                 }
                 data = decoded;
             } else if ([msg isKindOfClass: [NSString class]]) {
@@ -213,31 +213,36 @@ UsingLogDomain(Sync);
                 if (parsed) {
                     NSInteger changeCount = [self endParsingData];
                     parsed = changeCount >= 0;
-                    if (changeCount == 0 && !_caughtUp) {
+                    if (changeCount == 0 && !self->_caughtUp) {
                         // Received an empty changes array: means server is waiting, so I'm caught up
                         LogTo(ChangeTracker, @"%@: caught up!", self);
-                        _caughtUp = YES;
+                        self->_caughtUp = YES;
                         [self.client changeTrackerCaughtUp];
                     }
                 }
                 if (!parsed) {
                     Warn(@"Couldn't parse message: %@", msg);
-                    [_ws closeWithCode: PSWebSocketStatusCodeUnhandledType
+                    [self->_ws closeWithCode: PSWebSocketStatusCodeUnhandledType
                                 reason: @"Unparseable change entry"];
-                    _running = NO;
+                    self->_running = NO;
                 }
             }
             
-            if (_running)
+            if (self->_running)
                 [self startTimeout];
         }
-        OSAtomicDecrement32Barrier(&_pendingMessageCount);
+        @synchronized(self) {
+            self->_pendingMessageCount--;
+        }
         [self setPaused: self.paused]; // this will resume the WebSocket unless self.paused
     });
 
     // Tell the WebSocket to pause its reader if too many messages are waiting to be processed:
-    if (OSAtomicIncrement32Barrier(&_pendingMessageCount) >= kMaxPendingMessages)
-        _ws.readPaused = YES;
+    @synchronized(self) {
+        self->_pendingMessageCount++;
+        if(_pendingMessageCount >= kMaxPendingMessages)
+            _ws.readPaused = YES;
+    }
 }
 
 /** Called after the WebSocket closes, either intentionally or due to an error. */
@@ -247,14 +252,14 @@ UsingLogDomain(Sync);
         wasClean:(BOOL)wasClean
 {
     MYOnThread(_thread, ^{
-        if (ws != _ws)
+        if (ws != self->_ws)
             return;
-        _ws = nil;
+        self->_ws = nil;
         NSInteger effectiveCode = code;
         NSString* effectiveReason = reason;
         if (wasClean && (code == PSWebSocketStatusCodeNormal || code == 0)) {
             // Clean shutdown with no error/status:
-            if (!_running) {
+            if (!self->_running) {
                 // I closed the connection, so this is expected.
                 LogTo(ChangeTracker, @"%@: closed", self);
                 [self stop];

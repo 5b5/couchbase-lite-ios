@@ -635,7 +635,7 @@
                   
                   // Note that we've finished this task:
                   [self asyncTasksFinished: 1];
-                  --_httpConnectionCount;
+        --self->_httpConnectionCount;
                   // Start another task if there are still revisions waiting to be pulled:
                   [self pullRemoteRevisions];
               }
@@ -706,7 +706,7 @@
                     Warn(@"%@: Missing revision history in response for %@", self, rev);
                     self.error = CBLStatusToNSErrorWithInfo(kCBLStatusUpstreamError,
                                                             @"Missing revision history in response",
-                                                            _settings.remote, nil);
+                                                            self->_settings.remote, nil);
                     [self revisionFailed];
                     continue;
                 }
@@ -715,9 +715,9 @@
 
                 // Insert the revision:
                 NSError* error;
-                int status = [_db forceInsert: rev revisionHistory: history
-                                       source: _settings.remote
-                         allowStubAttachments: !_settings.downloadAttachments
+                int status = [self->_db forceInsert: rev revisionHistory: history
+                                             source: self->_settings.remote
+                               allowStubAttachments: !self->_settings.downloadAttachments
                                         error: &error];
                 if (CBLStatusIsError(status)) {
                     if (status == kCBLStatusForbidden) {
@@ -740,7 +740,7 @@
                 }
                 
                 // Mark this revision's fake sequence as processed:
-                [_pendingSequences removeSequence: fakeSequence];
+                [self->_pendingSequences removeSequence: fakeSequence];
             }
         }
         

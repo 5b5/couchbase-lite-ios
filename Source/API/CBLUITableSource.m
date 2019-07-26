@@ -153,7 +153,7 @@
         // So update the old rows array with the updated values from the new one:
         NSMutableArray* modPaths = [NSMutableArray new];
         [diff forEachModification: ^(NSUInteger before, NSUInteger after) {
-            _rows[before] = newRows[after];
+            self->_rows[before] = newRows[after];
             [modPaths addObject: [NSIndexPath indexPathForRow: before inSection: 0]];
         }];
         [_tableView reloadRowsAtIndexPaths: modPaths

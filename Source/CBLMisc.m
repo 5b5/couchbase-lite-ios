@@ -256,16 +256,7 @@ NSString* CBLEscapeURLParam( NSString* param ) {
     param = [param stringByReplacingOccurrencesOfString: @"=" withString: @"%3D"];
     return param;
 #else
-    CFStringRef escaped = CFURLCreateStringByAddingPercentEscapes(NULL,
-                                                                  (CFStringRef)param,
-                                                                  NULL,
-                                                                  (CFStringRef)@":/?@!$&'()*+,;=",
-                                                                  kCFStringEncodingUTF8);
-    #ifdef __OBJC_GC__
-    return NSMakeCollectable(escaped);
-    #else
-    return (__bridge_transfer NSString *)escaped;
-    #endif
+    return [param stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
 #endif
 }
 

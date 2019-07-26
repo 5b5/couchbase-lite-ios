@@ -363,7 +363,7 @@
 }
 
 
-+ (BOOL) saveModels: (NSArray*)models error: (NSError**)outError {
++ (BOOL) saveModels: (NSArray*)models error: (NSError*__autoreleasing *)outError {
     if (models.count == 0)
         return YES;
     CBLDatabase* db = [(CBLModel*)models[0] database];

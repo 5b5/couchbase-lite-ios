@@ -68,7 +68,7 @@ DefineLogDomain(Server);
     return [NSString stringWithFormat: @"%@[%p]", self.class, self];
 }
 
-- (void) queue: (void(^)())block {
+- (void) queue: (void(^)(void))block {
     AssertAbstractMethod();
 }
 
@@ -77,11 +77,11 @@ DefineLogDomain(Server);
 }
 
 - (void) tellDatabaseNamed: (NSString*)dbName to: (void (^)(CBLDatabase*))block {
-    [self queue: ^{ block([_manager databaseNamed: dbName error: NULL]); }];
+    [self queue: ^{ block([self->_manager databaseNamed: dbName error: NULL]); }];
 }
 
 - (void) tellDatabaseManager: (void (^)(CBLManager*))block {
-    [self queue: ^{ block(_manager); }];
+    [self queue: ^{ block(self->_manager); }];
 }
 
 - (id) waitForDatabaseNamed: (NSString*)dbName to: (id (^)(CBLDatabase*))block {
@@ -116,7 +116,7 @@ DefineLogDomain(Server);
     return self;
 }
 
-- (void) queue: (void(^)())block {
+- (void) queue: (void(^)(void))block {
     dispatch_async(_queue, block);
 }
 
@@ -207,9 +207,9 @@ DefineLogDomain(Server);
         [super close];
         [self waitForDatabaseManager:^id(CBLManager* mgr) {
             LogTo(Server, @"%@: Stopping server thread...", self);
-            [_manager close];
-            _manager = nil;
-            _stopRunLoop = YES;
+            [self->_manager close];
+            self->_manager = nil;
+            self->_stopRunLoop = YES;
             return nil;
         }];
         _serverThread = nil;
@@ -217,7 +217,7 @@ DefineLogDomain(Server);
 }
 
 
-- (void) queue: (void(^)())block {
+- (void) queue: (void(^)(void))block {
     Assert(_serverThread, @"-queue: called after -close");
     MYOnThread(_serverThread, block);
 }
@@ -229,7 +229,7 @@ DefineLogDomain(Server);
     [self queue: ^{
         [lock lockWhenCondition: 0];
         @try {
-            result = block(_manager);
+            result = block(self->_manager);
         } @finally {
             [lock unlockWithCondition: 1];
         }

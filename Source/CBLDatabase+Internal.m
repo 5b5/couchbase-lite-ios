@@ -443,7 +443,7 @@ static BOOL sAutoCompact = YES;
     // Careful: This is called on the main thread
     [self doAsync:^{
         LogTo(Database, @"Purging expired documents...");
-        NSUInteger nPurged = [_storage purgeExpiredDocuments];
+        NSUInteger nPurged = [self->_storage purgeExpiredDocuments];
         LogTo(Database, @"Purged %lu expired documents", (unsigned long)nPurged);
         [self scheduleDocumentExpiration: 1.0];
     }];
@@ -574,8 +574,8 @@ static BOOL sAutoCompact = YES;
 - (void) lowMemory: (NSNotification*)n {
     [self doAsync: ^{
         [self _pruneDocumentCache];
-        if ([_storage respondsToSelector:@selector(lowMemoryWarning)])
-            [_storage lowMemoryWarning];
+        if ([self->_storage respondsToSelector:@selector(lowMemoryWarning)])
+            [self->_storage lowMemoryWarning];
     }];
 }
 #endif

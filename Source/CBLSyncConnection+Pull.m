@@ -92,7 +92,7 @@ UsingLogDomain(Sync);
             for (NSArray* change in changes) {
                 NSString* docID = change[1];
                 NSString* revID = change[2];
-                NSArray* ancestors = [_db getPossibleAncestorsOfDocID: docID revID: revID
+                NSArray* ancestors = [self->_db getPossibleAncestorsOfDocID: docID revID: revID
                                                                 limit: kMaxPossibleAncestorsToSend];
                 if ([ancestors.firstObject isEqualToString: revID]) {
                     LogVerbose(Sync, @"    ...already have {%@, %@}", docID, revID);
@@ -118,7 +118,7 @@ UsingLogDomain(Sync);
             }
             [responseInfo removeObjectsInRange: NSMakeRange(realSize, responseInfo.count - realSize)];
         }
-        NSUInteger maxHistory = _db.maxRevTreeDepth;
+        NSUInteger maxHistory = self->_db.maxRevTreeDepth;
         time = CFAbsoluteTimeGetCurrent() - time;
         LogTo(Sync, @"Looked up %u revisions (%lu new) in %.4f sec",
               (unsigned)changes.count, (unsigned long)numRequested, time);
@@ -126,20 +126,20 @@ UsingLogDomain(Sync);
         [self onSyncQueue: ^{
             if (changes.count == 0) {
                 LogTo(Sync, @"Caught up with incoming changes!");
-                _pullCatchingUp = NO;
-                _updateStateSoon();
+                self->_pullCatchingUp = NO;
+                self->_updateStateSoon();
             } else {
                 //FIX: Shouldn't update this until the revs are saved to the db
-                _remoteCheckpointSequence = changes.lastObject[0];
+                self->_remoteCheckpointSequence = changes.lastObject[0];
                 [self noteLastSequenceChanged];
 
-                _awaitingRevs += numRequested;
-                if (_pullProgress.indeterminate || _state == kSyncIdle) {
+                self->_awaitingRevs += numRequested;
+                if (self->_pullProgress.indeterminate || self->_state == kSyncIdle) {
                     // Starting, or was idle:
-                    _pullProgress.completedUnitCount = 0;
-                    _pullProgress.totalUnitCount = numRequested;
+                    self->_pullProgress.completedUnitCount = 0;
+                    self->_pullProgress.totalUnitCount = numRequested;
                 } else {
-                    _pullProgress.totalUnitCount += numRequested;
+                    self->_pullProgress.totalUnitCount += numRequested;
                 }
                 BLIPResponse* response = request.response;
                 response[@"maxHistory"] = $sprintf(@"%lu", (unsigned long)maxHistory);
@@ -148,8 +148,8 @@ UsingLogDomain(Sync);
                 // The next step is that the peer will send docs, invoking -handleIncomingRevision
             }
             for (PendingRev* rev in revsToInsert) {
-                _awaitingRevs--;
-                _insertingRevs++;
+                self->_awaitingRevs--;
+                self->_insertingRevs++;
                 [self queueInsertPendingRev: rev];
             }
         }];
@@ -192,7 +192,7 @@ UsingLogDomain(Sync);
         for (NSString* name in attachments) {
             NSDictionary* attachment = attachments[name];
             NSString* digest = attachment[@"digest"];
-            if (digest && ![_db hasAttachmentWithDigest: digest]) {
+            if (digest && ![self->_db hasAttachmentWithDigest: digest]) {
                 NSMutableDictionary* mattachment = [attachment mutableCopy];
                 mattachment[@"name"] = name;
                 needDigests[digest] = mattachment;
@@ -226,8 +226,8 @@ UsingLogDomain(Sync);
                                             withAttachments: attWritersByDigest];
                                 [request respondWithData: nil contentType: nil];
                             } else {
-                                --_insertingRevs;
-                                _updateStateSoon();
+                                --self->_insertingRevs;
+                                self->_updateStateSoon();
                                 [self failedToGetRevision: @"missing attachment(s)"];
                                 [request respondWithErrorCode: 500
                                                       message: @"Couldn't get attachments"];
@@ -353,7 +353,7 @@ UsingLogDomain(Sync);
                                      (int64_t)(kInsertBatchInterval * NSEC_PER_SEC)),
                        _syncQueue,
                        ^{
-                           if (_revsToInsert == currentRevsToInsert)
+            if (self->_revsToInsert == currentRevsToInsert)
                                [self insertRevisions];
                        });
     }
@@ -372,15 +372,15 @@ UsingLogDomain(Sync);
         // DO NOT USE _db IN THIS BLOCK! Use _insertDB instead!
         CFAbsoluteTime time = CFAbsoluteTimeGetCurrent();
         __block NSUInteger inserted = 0;
-        [_insertDB inTransaction:^BOOL{
+        [self->_insertDB inTransaction:^BOOL{
             for (PendingRev* rev in revs) {
                 @autoreleasepool {
                     if (rev.attachments)
-                        [_insertDB rememberAttachmentWritersForDigests: rev.attachments];
+                        [self->_insertDB rememberAttachmentWritersForDigests: rev.attachments];
                     NSError* error;
-                    if ([_insertDB forceInsertRevisionWithJSON: rev.body
+                    if ([self->_insertDB forceInsertRevisionWithJSON: rev.body
                                                revisionHistory: rev.history
-                                                        source: _connection.URL
+                                                        source: self->_connection.URL
                                                          error: &error]) {
                         if (WillLogVerbose(Sync)) {
                             NSDictionary* doc = [CBLJSON JSONObjectWithData: rev.body options: 0
@@ -408,9 +408,9 @@ UsingLogDomain(Sync);
 #endif
 
         [self onSyncQueue: ^{
-            _pullProgress.completedUnitCount += inserted;
-            _insertingRevs -= revs.count;
-            _updateStateSoon();
+            self->_pullProgress.completedUnitCount += inserted;
+            self->_insertingRevs -= revs.count;
+            self->_updateStateSoon();
         }];
     });
 }

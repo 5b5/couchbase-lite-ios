@@ -66,11 +66,11 @@
 // Called when the replicator goes idle (from -updateActive)
 - (void) okToEndBackgrounding {
     dispatch_async(dispatch_get_main_queue(), ^{
-        if ([_bgMonitor hasBackgroundTask]) {
-            _deepBackground = YES;
+        if ([self->_bgMonitor hasBackgroundTask]) {
+            self->_deepBackground = YES;
             [self updateSuspended];
             LogTo(Sync, @"%@: Now idle; ending background task", self);
-            [_bgMonitor endBackgroundTask];  // will probably suspend the process immediately
+            [self->_bgMonitor endBackgroundTask];  // will probably suspend the process immediately
         }
     });
 }

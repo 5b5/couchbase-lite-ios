@@ -5,6 +5,7 @@
 *.xcscmblueprint
 *.xccheckout
 *.framework
+*.xcframework
 *.a
 *~
 xcuserdata/

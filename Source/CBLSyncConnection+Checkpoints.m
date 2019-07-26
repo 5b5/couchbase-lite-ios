@@ -50,10 +50,10 @@
         }
         id lastSequenceID = checkpoint[@"lastSequence"];
         __block NSString* savedSequenceStr;
-        dispatch_sync(_dbQueue, ^{
-            savedSequenceStr = [_db lastSequenceWithCheckpointID: checkpointID];
+        dispatch_sync(self->_dbQueue, ^{
+            savedSequenceStr = [self->_db lastSequenceWithCheckpointID: checkpointID];
         });
-        if (_pushing) {
+        if (self->_pushing) {
             uint64_t lastSequence = $castIf(NSNumber, lastSequenceID).unsignedLongLongValue;
             uint64_t savedSequence = savedSequenceStr.longLongValue;
             if (lastSequence != savedSequence) {
@@ -61,7 +61,7 @@
                       savedSequence, lastSequence);
                 lastSequence = 0;
             }
-            _localCheckpointSequence = lastSequence;
+            self->_localCheckpointSequence = lastSequence;
         } else {
             NSData* json = [savedSequenceStr dataUsingEncoding: NSUTF8StringEncoding];
             id savedSequence = nil;
@@ -75,19 +75,19 @@
                       savedSequence, lastSequenceID);
                 lastSequenceID = nil;
             }
-            _remoteCheckpointSequence = lastSequenceID;
+            self->_remoteCheckpointSequence = lastSequenceID;
         }
-        _remoteCheckpointRevID = response[@"rev"];
+        self->_remoteCheckpointRevID = response[@"rev"];
 
         // Now can start the actual push or pull:
-        if (_pulling) {
-            [self requestChangesSince: _remoteCheckpointSequence
+        if (self->_pulling) {
+            [self requestChangesSince: self->_remoteCheckpointSequence
                           inBatchesOf: kDefaultChangeBatchSize
-                           continuous: _pullContinuousChanges];
+                           continuous: self->_pullContinuousChanges];
             [self updateState: kSyncActive];
         }
-        if (_pushing) {
-            [self sendChangesSince: _localCheckpointSequence];
+        if (self->_pushing) {
+            [self sendChangesSince: self->_localCheckpointSequence];
         }
     };
 }
@@ -115,19 +115,19 @@
     request.bodyJSON = $dict({@"lastSequence", lastSequence});
     LogTo(Sync, @"Saving checkpoint: %@", request.body.my_UTF8ToString);
     [request send].onComplete = ^(BLIPResponse* response) {
-        _savingCheckpoint = NO;
+        self->_savingCheckpoint = NO;
         if ([self gotError: response])
             return; // connection will close
-        _remoteCheckpointRevID = response[@"rev"];
-        dispatch_sync(_dbQueue, ^{
-            [_db setLastSequence: [lastSequence description]
+        self->_remoteCheckpointRevID = response[@"rev"];
+        dispatch_sync(self->_dbQueue, ^{
+            [self->_db setLastSequence: [lastSequence description]
                 withCheckpointID: checkpointID];
         });
         LogTo(Sync, @"Saved remote checkpoint '%@'", lastSequence);
-        if (_overdueForSave && _lastSequenceChanged)
+        if (self->_overdueForSave && self->_lastSequenceChanged)
             [self updateCheckpoint];      // start a save that was waiting on me
-        else if (_closeAfterSave)
-            [_connection close];
+        else if (self->_closeAfterSave)
+            [self->_connection close];
     };
     return YES;
 }
@@ -174,7 +174,7 @@ static NSString* localDocIDForCheckpointRequest(BLIPRequest* request) {
     [request deferResponse];
     
     [self onDatabaseQueue:^{
-        NSDictionary* checkpoint = [_db existingLocalDocumentWithID: docID];
+        NSDictionary* checkpoint = [self->_db existingLocalDocumentWithID: docID];
         NSString* revID = nil;
         if (checkpoint) {
             NSMutableDictionary* mcheck = [checkpoint mutableCopy];
@@ -213,11 +213,11 @@ static NSString* localDocIDForCheckpointRequest(BLIPRequest* request) {
 
     [self onDatabaseQueue:^{
         NSError* error;
-        BOOL ok = [_db putLocalDocument: checkpoint withID: docID error: &error];
+        BOOL ok = [self->_db putLocalDocument: checkpoint withID: docID error: &error];
         NSString* newRevID = nil;
         // Workaround for -putLocalDocument: not returning the new revID:
         if (ok)
-            newRevID = [_db existingLocalDocumentWithID: docID][@"_rev"];
+            newRevID = [self->_db existingLocalDocumentWithID: docID][@"_rev"];
 
         [self onSyncQueue:^{
             if (ok) {

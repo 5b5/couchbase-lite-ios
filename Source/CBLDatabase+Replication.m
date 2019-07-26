@@ -67,7 +67,7 @@
     id<CBL_Replicator> repl = n.object;
     if (repl.error)     // Leave it around a while so clients can see the error
         MYAfterDelay(kActiveReplicatorCleanupDelay,
-                     ^{[_activeReplicators removeObjectIdenticalTo: repl];});
+                     ^{[self->_activeReplicators removeObjectIdenticalTo: repl];});
     else
         [_activeReplicators removeObjectIdenticalTo: repl];
 }

@@ -377,12 +377,12 @@ UsingLogDomain(Database);
     if (blobs.count == 0) {
         // No blobs, so nothing to encrypt. Just add/remove the encryption marker file:
         [action addPerform: ^BOOL(NSError** outError) {
-            Log(@"CBLBlobStore: %@ %@", (newKey ? @"encrypting" : @"decrypting"), _path);
+            Log(@"CBLBlobStore: %@ %@", (newKey ? @"encrypting" : @"decrypting"), self->_path);
             Log(@"    No blobs to copy; done.");
-            _encryptionKey = newKey;
+            self->_encryptionKey = newKey;
             return [self markEncrypted: (newKey != nil) error: outError];
         } backOut:  ^BOOL(NSError** outError) {
-            _encryptionKey = oldKey;
+            self->_encryptionKey = oldKey;
             return [self markEncrypted: (oldKey != nil) error: outError];
         } cleanUp: nil];
         return action;
@@ -393,7 +393,7 @@ UsingLogDomain(Database);
     NSError* createTempDirError;
     NSString* tempPath = [self createTempDir: &createTempDirError];
     [action addPerform:^BOOL(NSError** _Nonnull outError) {
-        Log(@"CBLBlobStore: %@ %@", (newKey ? @"encrypting" : @"decrypting"), _path);
+        Log(@"CBLBlobStore: %@ %@", (newKey ? @"encrypting" : @"decrypting"), self->_path);
         *outError = createTempDirError;
         return tempPath != nil;
     } backOut:^BOOL(NSError** outError) {
@@ -412,15 +412,15 @@ UsingLogDomain(Database);
         for (NSString* blobName in blobs) {
             // Copy file by reading with old key and writing with new one:
             Log(@"    Copying %@", blobName);
-            NSString* srcFile = [_path stringByAppendingPathComponent: blobName];
+            NSString* srcFile = [self->_path stringByAppendingPathComponent: blobName];
             NSInputStream* readStream = [NSInputStream inputStreamWithFileAtPath: srcFile];
             [readStream open];
             if (readStream.streamError) {
                 *outError = readStream.streamError;
                 return NO;
             }
-            if (_encryptionKey)
-                readStream = [_encryptionKey decryptStream: readStream];
+            if (self->_encryptionKey)
+                readStream = [self->_encryptionKey decryptStream: readStream];
 
             CBL_BlobStoreWriter* writer = [[CBL_BlobStoreWriter alloc] initWithStore: tempStore];
             BOOL ok = [writer appendInputStream: readStream error: outError];
@@ -441,10 +441,10 @@ UsingLogDomain(Database);
 
     // Finally update _encryptionKey:
     [action addPerform:^BOOL(NSError** outError) {
-        _encryptionKey = newKey;
+        self->_encryptionKey = newKey;
         return YES;
     } backOut: ^BOOL(NSError** outError) {
-        _encryptionKey = oldKey;
+        self->_encryptionKey = oldKey;
         return YES;
     } cleanUp: nil];
     return action;

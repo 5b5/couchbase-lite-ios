@@ -358,8 +358,11 @@ void CBLWarnUntrustedCert(NSString* host, SecTrustRef trust) {
         ok = [_delegate checkSSLServerTrust: space];
     } else {
         SecTrustResultType result;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
         ok = (SecTrustEvaluate(trust, &result) == noErr) &&
                 (result==kSecTrustResultProceed || result==kSecTrustResultUnspecified);
+#pragma clang diagnostic pop
 #if DEBUG
         if (!ok && _debugAlwaysTrust) {
             ok = YES;
