@@ -2243,9 +2243,7 @@
 		9905EBCE22E1C50800DA5DF6 /* MobileCoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MobileCoreServices.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/System/Library/Frameworks/MobileCoreServices.framework; sourceTree = DEVELOPER_DIR; };
 		99850ABE22E1D8F000D76D10 /* CoreServices.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreServices.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS13.0.sdk/System/Library/Frameworks/CoreServices.framework; sourceTree = DEVELOPER_DIR; };
 		99850B1222E21BD800D76D10 /* CouchbaseLite.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CouchbaseLite.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		99850B2222E2298800D76D10 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		99E0E6F122E27A4200E93616 /* CouchbaseLiteListener.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CouchbaseLiteListener.framework; sourceTree = BUILT_PRODUCTS_DIR; };
-		99E0E6F222E27A4300E93616 /* CBL Listener iOS copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "CBL Listener iOS copy-Info.plist"; path = "/Users/torstenrosenstiel/Documents/couchbase-lite-ios/CBL Listener iOS copy-Info.plist"; sourceTree = "<absolute>"; };
 		AA1776B61857ADDB00CB01A3 /* CBLIncrementalStore.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CBLIncrementalStore.h; sourceTree = "<group>"; };
 		AA1776B71857ADDB00CB01A3 /* CBLIncrementalStore.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CBLIncrementalStore.m; sourceTree = "<group>"; };
 		AA1776BB1857AE4D00CB01A3 /* CoreData.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreData.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS7.0.sdk/System/Library/Frameworks/CoreData.framework; sourceTree = DEVELOPER_DIR; };
@@ -2542,11 +2540,9 @@
 				27FA59EE179EFD730043460A /* Documentation */,
 				27FFFF071C973FB5001A70FC /* xcconfigs */,
 				2753154D14ACEF350065964D /* vendor */,
-				99850B2122E2298700D76D10 /* TestBundle */,
 				27C70696148864BA00F0F099 /* Frameworks */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
 				93AB91301F730E7800897658 /* Recovered References */,
-				99E0E6F222E27A4300E93616 /* CBL Listener iOS copy-Info.plist */,
 			);
 			name = CouchLite;
 			sourceTree = "<group>";
@@ -3667,14 +3663,6 @@
 				277B5DCC1821AE990088881E /* CBLJSONReader.h */,
 			);
 			name = "Recovered References";
-			sourceTree = "<group>";
-		};
-		99850B2122E2298700D76D10 /* TestBundle */ = {
-			isa = PBXGroup;
-			children = (
-				99850B2222E2298800D76D10 /* Info.plist */,
-			);
-			path = TestBundle;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
