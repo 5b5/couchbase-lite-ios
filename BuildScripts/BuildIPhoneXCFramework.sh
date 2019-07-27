@@ -16,23 +16,27 @@
 #
 
 BASE_PWD="$PWD"
+SCRIPT_NAME="$( basename "${BASH_SOURCE[0]}" )"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null && pwd )"
 PROJECT_DIR="${SCRIPT_DIR}/.."
 PROJECT="${PROJECT_DIR}/CouchbaseLite.xcodeproj"
-
 
 export ALREADYINVOKED="true"
 
 ACTION="archive"
 CONFIGURATION="Release"
-if [ "$1" == "listener" ]; then
+if [ "$1" == "cbl_listener" ]; then
    PRODUCT_NAME="CouchbaseLiteListener"
    TARGET_NAME="CBL Listener iOS XCFramework"
    SCHEME_NAME="CBL Listener iOS XCFramework"
-else
+elif [ "$1" == "cbl" ]; then
    PRODUCT_NAME="CouchbaseLite"
    TARGET_NAME="CBL iOS XCFramework"
    SCHEME_NAME="Continuous iOS XCFramework"
+else
+   "${SCRIPT_DIR}/${SCRIPT_NAME}" cbl
+   "${SCRIPT_DIR}/${SCRIPT_NAME}" cbl_listener
+   exit 0
 fi
 EXECUTABLE_NAME="${PRODUCT_NAME}.framework"
 BUILD_DIR="${PROJECT_DIR}/build"
