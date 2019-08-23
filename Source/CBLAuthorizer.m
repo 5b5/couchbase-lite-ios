@@ -174,8 +174,16 @@ static BOOL acceptProblems(SecTrustRef trust, NSString* host) {
                     accept = (i == 0 && SecTrustGetCertificateCount(trust) == 1 && localDomain);
             }
 #endif
-            if (!accept)
+#if TARGET_OS_UIKITFORMAC
+            else if ([problem isEqualToString: @"StatusCodes"]) {
+                // Same thing but constants not defined in UIKitForMac!
+                if ([details[problem] containsObject: @(-2147408896)])
+                    accept = (i == 0 && SecTrustGetCertificateCount(trust) == 1 && localDomain);
+            }
+#endif
+            if (!accept) {
                 return NO;
+            }
         }
         i++;
     }

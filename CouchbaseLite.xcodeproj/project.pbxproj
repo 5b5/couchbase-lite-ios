@@ -4663,6 +4663,7 @@
 					};
 					27452BB71AB1180800327776 = {
 						CreatedOnToolsVersion = 6.3;
+						DevelopmentTeam = T373T6JR4A;
 					};
 					275315D414ACF0A10065964D = {
 						DevelopmentTeam = N2Q372V7W2;
@@ -4679,6 +4680,12 @@
 					};
 					930FE55D1C58562B008107A0 = {
 						CreatedOnToolsVersion = 7.2;
+					};
+					99850ACB22E21BD800D76D10 = {
+						DevelopmentTeam = T373T6JR4A;
+					};
+					99E0E6E222E27A4200E93616 = {
+						DevelopmentTeam = T373T6JR4A;
 					};
 				};
 			};
@@ -6203,8 +6210,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 27FFFF151C973FB5001A70FC /* iOS framework_Debug.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
-				DEVELOPMENT_TEAM = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				DEVELOPMENT_TEAM = T373T6JR4A;
 				SUPPORTS_UIKITFORMAC = YES;
 				VALID_ARCHS = "$(ARCHS_STANDARD)";
 			};
@@ -6214,8 +6221,8 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 27FFFF161C973FB5001A70FC /* iOS framework_Release.xcconfig */;
 			buildSettings = {
-				CODE_SIGN_IDENTITY = "";
-				DEVELOPMENT_TEAM = "";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				DEVELOPMENT_TEAM = T373T6JR4A;
 				SUPPORTS_UIKITFORMAC = YES;
 				VALID_ARCHS = "$(ARCHS_STANDARD)";
 			};
@@ -6408,7 +6415,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 27FFFF211C973FB5001A70FC /* iOS_Debug.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = T373T6JR4A;
 				SUPPORTS_UIKITFORMAC = YES;
 				UNIVERSAL_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)-$(PLATFORM_NAME)";
 				VALID_ARCHS = "$(ARCHS_STANDARD)";
@@ -6419,7 +6426,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 27FFFF221C973FB5001A70FC /* iOS_Release.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = T373T6JR4A;
 				SUPPORTS_UIKITFORMAC = YES;
 				UNIVERSAL_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)-$(PLATFORM_NAME)";
 				VALID_ARCHS = "$(ARCHS_STANDARD)";
@@ -6430,7 +6437,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 27FFFF241C973FB5001A70FC /* Listener iOS_Debug.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = T373T6JR4A;
 				INFOPLIST_FILE = "";
 				PRODUCT_NAME = CouchbaseLiteListener;
 				SUPPORTS_UIKITFORMAC = YES;
@@ -6442,7 +6449,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 27FFFF251C973FB5001A70FC /* Listener iOS_Release.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = T373T6JR4A;
 				INFOPLIST_FILE = "";
 				PRODUCT_NAME = CouchbaseLiteListener;
 				SUPPORTS_UIKITFORMAC = YES;
