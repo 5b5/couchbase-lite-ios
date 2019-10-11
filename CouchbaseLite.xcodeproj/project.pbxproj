@@ -6416,6 +6416,7 @@
 			baseConfigurationReference = 27FFFF211C973FB5001A70FC /* iOS_Debug.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T373T6JR4A;
+				MACH_O_TYPE = staticlib;
 				SUPPORTS_UIKITFORMAC = YES;
 				UNIVERSAL_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)-$(PLATFORM_NAME)";
 				VALID_ARCHS = "$(ARCHS_STANDARD)";
@@ -6427,6 +6428,7 @@
 			baseConfigurationReference = 27FFFF221C973FB5001A70FC /* iOS_Release.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T373T6JR4A;
+				MACH_O_TYPE = staticlib;
 				SUPPORTS_UIKITFORMAC = YES;
 				UNIVERSAL_BUILD_DIR = "$(BUILD_DIR)/$(CONFIGURATION)-$(PLATFORM_NAME)";
 				VALID_ARCHS = "$(ARCHS_STANDARD)";
@@ -6438,7 +6440,8 @@
 			baseConfigurationReference = 27FFFF241C973FB5001A70FC /* Listener iOS_Debug.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T373T6JR4A;
-				INFOPLIST_FILE = "";
+				INFOPLIST_FILE = "Listener/CouchbaseLiteListener-Info.plist";
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = CouchbaseLiteListener;
 				SUPPORTS_UIKITFORMAC = YES;
 				VALID_ARCHS = "$(ARCHS_STANDARD)";
@@ -6450,7 +6453,8 @@
 			baseConfigurationReference = 27FFFF251C973FB5001A70FC /* Listener iOS_Release.xcconfig */;
 			buildSettings = {
 				DEVELOPMENT_TEAM = T373T6JR4A;
-				INFOPLIST_FILE = "";
+				INFOPLIST_FILE = "Listener/CouchbaseLiteListener-Info.plist";
+				MACH_O_TYPE = staticlib;
 				PRODUCT_NAME = CouchbaseLiteListener;
 				SUPPORTS_UIKITFORMAC = YES;
 				VALID_ARCHS = "$(ARCHS_STANDARD)";

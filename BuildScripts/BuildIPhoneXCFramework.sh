@@ -45,6 +45,7 @@ PRODUCTS_DIR="${PROJECT_DIR}/products"
 XCFRAMEWORK_DIR=${BUILD_DIR}/${CONFIGURATION}-iOS-universal
 XCFRAMEWORK_NAME="${XCFRAMEWORK_DIR}/${EXECUTABLE_NAME/.framework/.xcframework}"
 XCFRAMEWORK_COMMAND="xcodebuild -create-xcframework -output \"${XCFRAMEWORK_NAME}\" "
+LIPO_COMMAND="lipo -create "
 
 rm -Rf "${BUILD_DIR}"
 mkdir -p "${BUILD_DIR}"
@@ -92,7 +93,8 @@ function combineLibs {
        done
    done
 
-   # Combine results of the same architecture into a library for that architecture
+   # Combine results of the same architecture into a library f
+   or that architecture
    source_combined=""
    for arch in ${archs[*]}
    do
@@ -143,13 +145,35 @@ function build {
    fi
    local FRAMEWORK_DIR="${CONFIGURATION_BUILD_DIR}/${EXECUTABLE_NAME}"
    if [ -d "${FRAMEWORK_DIR}/Contents" ]; then
-      # XCode generated a MAC-Style Framework...
+      # XCode generated a "Loadable" Bundle... (which doesn't work on iPhone/iPad)
       cp -Rf "${FRAMEWORK_DIR}/Contents/"* "${FRAMEWORK_DIR}"
       rm -Rf "${FRAMEWORK_DIR}/Contents"
       cp -Rf "${FRAMEWORK_DIR}/MacOS/"* "${FRAMEWORK_DIR}"
       rm -Rf "${FRAMEWORK_DIR}/MacOS"
    fi
+   cp "${CONFIGURATION_BUILD_DIR}/lib${PRODUCT_NAME}.a" "${PRODUCTS_DIR}/lib${PRODUCT_NAME}-${TYPE}.a"
+   if [ "$TYPE" != "uikitformac" ]; then
+      LIPO_COMMAND="${LIPO_COMMAND} \"${PRODUCTS_DIR}/lib${PRODUCT_NAME}-${TYPE}.a\""
+   fi
    mv -f "${CONFIGURATION_BUILD_DIR}/lib${PRODUCT_NAME}.a" "${FRAMEWORK_DIR}/${PRODUCT_NAME}"
+   if [ "$TYPE" == "uikitformac" ]; then
+      mkdir -p "${FRAMEWORK_DIR}/Versions/A/Resources" || true
+      ln -s A "${FRAMEWORK_DIR}/Versions/Current" || true
+      ln -s "Versions/Current/Resources" "${FRAMEWORK_DIR}/Resources" || true
+      mv "${FRAMEWORK_DIR}/Info.plist" "${FRAMEWORK_DIR}/Versions/A/Resources" || true
+
+      mv "${FRAMEWORK_DIR}/${PRODUCT_NAME}" "${FRAMEWORK_DIR}/Versions/A" || true
+      ln -s "Versions/Current/${PRODUCT_NAME}" "${FRAMEWORK_DIR}/${PRODUCT_NAME}" || true
+      chmod +x "${FRAMEWORK_DIR}/${PRODUCT_NAME}" || true
+
+      mv "${FRAMEWORK_DIR}/Headers" "${FRAMEWORK_DIR}/Versions/A" || true
+      ln -s "Versions/Current/Headers" "${FRAMEWORK_DIR}/Headers" || true
+      mkdir -p "${PRODUCTS_DIR}/Headers"
+      cp "${FRAMEWORK_DIR}/Headers/"* "${PRODUCTS_DIR}/Headers"
+
+      mv "${FRAMEWORK_DIR}/PrivateHeaders" "${FRAMEWORK_DIR}/Versions/A" || true
+      ln -s "Versions/Current/PrivateHeaders" "${FRAMEWORK_DIR}/PrivateHeaders" || true
+   fi
    if [ -d "${CONFIGURATION_BUILD_DIR}/usr/local/include" ]; then
       mkdir -p "${FRAMEWORK_DIR}/usr/local/include"
       cp "${CONFIGURATION_BUILD_DIR}/usr/local/include/"* "${FRAMEWORK_DIR}/usr/local/include"
@@ -166,5 +190,8 @@ build uikitformac
 rm -Rf "${PRODUCTS_DIR}/${EXECUTABLE_NAME/.framework/.xcframework}"
 echo "About to invoke: ${XCFRAMEWORK_COMMAND}"
 eval ${XCFRAMEWORK_COMMAND}
+LIPO_COMMAND="${LIPO_COMMAND} -output \"${PRODUCTS_DIR}/lib${PRODUCT_NAME}-iphone-all.a\""
+echo "About to invoke: ${LIPO_COMMAND}"
+eval ${LIPO_COMMAND}
 
-cp -RL "${XCFRAMEWORK_NAME}" "${PRODUCTS_DIR}"
+cp -R "${XCFRAMEWORK_NAME}" "${PRODUCTS_DIR}"
