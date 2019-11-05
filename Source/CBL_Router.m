@@ -87,7 +87,7 @@ static NSMutableSet* sRunningRouters;
 
 @synthesize onAccessCheck=_onAccessCheck, onResponseReady=_onResponseReady,
             onDataAvailable=_onDataAvailable, onFinished=_onFinished, source=_source,
-            request=_request, response=_response, processRanges=_processRanges;
+            request=_request, response=_response, processRanges=_processRanges,dbMapping=_dbMapping;
 
 
 - (NSDictionary*) queries {
@@ -379,6 +379,18 @@ static NSArray* splitPath( NSURL* url ) {
             return kCBLStatusBadID;
         } else {
             // Instantiate the db object but don't create/open the file yet
+            if (_dbMapping != nil) {
+                LogTo(Router,@"CBL_Router: dbMapping set!");
+                if(![_dbMapping.allKeys containsObject:dbName]) {
+                    LogTo(Router,@"CBL_Router: mapped database %@ not found!",dbName);
+                    return kCBLStatusNotFound;
+                }
+                LogTo(Router,@"CBL_Router: mapping from %@",dbName);
+                dbName = _dbMapping[dbName];
+                LogTo(Router,@"CBL_Router: mapping to %@",dbName);
+            } else {
+                LogTo(Router,@"CBL_Router: dbMaping not set!");
+            }
             _db = [_dbManager _databaseNamed: dbName mustExist: NO error: NULL];
             if (!_db)
                 return kCBLStatusNotFound;

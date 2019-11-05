@@ -69,6 +69,12 @@
 
 - (CBLStatus) do_GET_all_dbs {
     NSArray* dbs = _dbManager.allDatabaseNames ?: @[];
+    if(_dbMapping != nil) {
+        LogTo(Router,@"CBL_Router: dbMapping set!");
+        dbs = _dbMapping.allKeys;
+    } else {
+        LogTo(Router,@"CBL_Router: dbMapping not set!");
+    }
     _response.body = [[CBL_Body alloc] initWithArray: dbs];
     return kCBLStatusOK;
 }

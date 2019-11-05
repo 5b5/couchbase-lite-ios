@@ -55,6 +55,7 @@ enum {
     NSMutableArray* _path;
     NSDictionary* _queries;
     NSMutableArray* _queryRetainer;
+    NSDictionary<NSString*,NSString*>* _dbMapping;
     CBLResponse* _response;
     CBLDatabase* _db;
     BOOL _local;
@@ -82,6 +83,7 @@ enum {
                         isLocal: (BOOL)isLocal;
 
 @property (copy) NSURL* source;
+@property (copy) NSDictionary<NSString*,NSString*>* dbMapping;
 @property BOOL processRanges;
 
 @property (copy) OnAccessCheckBlock onAccessCheck;

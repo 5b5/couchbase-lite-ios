@@ -176,6 +176,7 @@ static void evaluate(SecTrustRef trust, SecTrustCallback callback) {
     CBL_Router* router = [[CBL_Router alloc] initWithServer: ((CBLHTTPServer*)config.server).cblServer
                                                 request: urlRequest
                                                 isLocal: NO];
+    router.dbMapping = self.listener.dbMapping;
     router.processRanges = NO;  // The HTTP server framework does this already
     router.source = self.remoteURL;
 

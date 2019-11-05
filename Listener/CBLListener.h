@@ -44,6 +44,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (weak, nullable) id<CBLListenerDelegate> delegate;
 
+@property (nullable) NSDictionary<NSString*,NSString*>* dbMapping;
+
 
 /** Sets the Bonjour service name and type to advertise as.
     @param name  The service name; this can be arbitrary but is generally the device user's name. An empty string will be mapped to the device's name.

@@ -33,7 +33,7 @@ DefineLogDomain(Listener);
 
 
 @synthesize readOnly=_readOnly, requiresAuth=_requiresAuth, realm=_realm,
-            SSLExtraCertificates=_SSLExtraCertificates, delegate=_delegate;
+            SSLExtraCertificates=_SSLExtraCertificates, delegate=_delegate,dbMapping=_dbMapping;
 
 
 - (instancetype) initWithManager: (CBLManager*)manager port: (UInt16)port {
